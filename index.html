@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Torre de Monitoreo · BID Perú</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0A0F1A;
+    --panel:#111927;
+    --panel-2:#161F2F;
+    --line:#232E42;
+    --text:#E7ECF3;
+    --muted:#8291A8;
+    --accent:#2DD4BF;
+    --accent-dim:#1B4B47;
+    --alto:#F87171;
+    --alto-dim:#3B1B1E;
+    --medio:#FBBF24;
+    --medio-dim:#3A2F10;
+    --bajo:#34D399;
+    --bajo-dim:#123528;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    background-image:
+      radial-gradient(circle at 15% 0%, rgba(45,212,191,0.06), transparent 40%),
+      radial-gradient(circle at 85% 20%, rgba(248,113,113,0.04), transparent 40%);
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:20px 28px;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:rgba(10,15,26,0.92);backdrop-filter:blur(6px);z-index:10;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .brand .mark{
+    width:36px;height:36px;border-radius:8px;
+    background:linear-gradient(135deg,var(--accent),#1793FF);
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Space Grotesk';font-weight:700;color:#04140F;font-size:15px;
+  }
+  .brand h1{font-family:'Space Grotesk';font-weight:600;font-size:17px;letter-spacing:0.2px;}
+  .brand .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .status{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);}
+  .pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);position:relative;}
+  .pulse::after{
+    content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--accent);
+    animation:ping 2.2s cubic-bezier(0,0,0.2,1) infinite;
+  }
+  @keyframes ping{0%{transform:scale(0.6);opacity:0.8;}100%{transform:scale(2.2);opacity:0;}}
+  .btn{
+    font-family:'Inter';font-weight:600;font-size:13px;
+    background:var(--accent);color:#04140F;border:none;border-radius:7px;
+    padding:9px 16px;cursor:pointer;transition:opacity .15s;
+  }
+  .btn:hover{opacity:0.85;}
+  .btn:disabled{opacity:0.5;cursor:wait;}
+  .btn.ghost{
+    background:transparent;color:var(--text);border:1px solid var(--line);
+  }
+  .btn.ghost:hover{border-color:var(--accent);}
+  .layout{display:grid;grid-template-columns:300px 1fr;gap:0;min-height:calc(100vh - 78px);}
+  aside{
+    border-right:1px solid var(--line);padding:24px 20px;
+  }
+  .radar-box{
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px;margin-bottom:22px;
+  }
+  .radar-box h3{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:12px;font-weight:600;}
+  .sev-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:5px 0;}
+  .sev-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;}
+  .section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:20px 0 10px;font-weight:600;}
+  .filter-grp{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
+  .chip{
+    display:flex;align-items:center;justify-content:space-between;
+    font-size:13px;padding:7px 10px;border-radius:7px;cursor:pointer;
+    border:1px solid transparent;color:var(--muted);
+  }
+  .chip:hover{background:var(--panel-2);}
+  .chip.active{background:var(--panel-2);border-color:var(--line);color:var(--text);}
+  .kw-list{display:flex;flex-direction:column;gap:6px;}
+  .kw-item{
+    display:flex;align-items:center;justify-content:space-between;
+    background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    padding:6px 9px;font-size:12.5px;
+  }
+  .kw-item button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;}
+  .kw-item button:hover{color:var(--alto);}
+  .kw-add{display:flex;gap:6px;margin-top:8px;}
+  .kw-add input{
+    flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;
+    color:var(--text);font-size:12.5px;padding:7px 8px;font-family:'Inter';
+  }
+  .kw-add input:focus{outline:none;border-color:var(--accent);}
+  .kw-add button{
+    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;color:var(--text);
+    padding:0 10px;cursor:pointer;font-size:14px;
+  }
+  main{padding:24px 32px;}
+  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .toolbar .last{font-size:12px;color:var(--muted);}
+  .toolbar .last span{color:var(--text);}
+  .feed{display:flex;flex-direction:column;gap:10px;}
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);
+    border-radius:9px;padding:16px 18px;animation:fadein .4s ease both;
+  }
+  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  .card.alta{border-left-color:var(--alto);}
+  .card.media{border-left-color:var(--medio);}
+  .card.baja{border-left-color:var(--bajo);}
+  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;}
+  .card-title{font-size:14.5px;font-weight:600;line-height:1.4;}
+  .badges{display:flex;gap:6px;flex-shrink:0;}
+  .badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
+  .badge.alta{background:var(--alto-dim);color:var(--alto);}
+  .badge.media{background:var(--medio-dim);color:var(--medio);}
+  .badge.baja{background:var(--bajo-dim);color:var(--bajo);}
+  .badge.cat{background:var(--accent-dim);color:var(--accent);}
+  .card-summary{font-size:13px;color:#C3CCDA;line-height:1.55;margin-bottom:10px;}
+  .card-meta{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--muted);}
+  .card-meta a{color:var(--accent);text-decoration:none;}
+  .card-meta a:hover{text-decoration:underline;}
+  .empty{
+    text-align:center;padding:80px 20px;color:var(--muted);
+  }
+  .empty .big{font-family:'Space Grotesk';font-size:16px;color:var(--text);margin-bottom:6px;}
+  .empty p{font-size:13px;max-width:360px;margin:0 auto;}
+  .loading-line{font-size:12px;color:var(--accent);margin-top:14px;}
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="mark">BID</div>
+    <div>
+      <h1>Torre de Monitoreo · Perú</h1>
+      <div class="sub">Alertas de riesgo técnico, social, reputacional, económico y político</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;">
+    <div class="status"><span class="pulse"></span><span id="statusText">En espera</span></div>
+    <button class="btn ghost" id="autoBtn">Auto-escaneo: OFF</button>
+    <button class="btn" id="scanBtn">Escanear ahora</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside>
+    <div class="radar-box">
+      <h3>Distribución de severidad</h3>
+      <div class="sev-row"><span><span class="sev-dot" style="background:var(--alto)"></span>Alta</span><span class="mono" id="cntAlta">0</span></div>
+      <div class="sev-row"><span><span class="sev-dot" style="background:var(--medio)"></span>Media</span><span class="mono" id="cntMedia">0</span></div>
+      <div class="sev-row"><span><span class="sev-dot" style="background:var(--bajo)"></span>Baja</span><span class="mono" id="cntBaja">0</span></div>
+    </div>
+
+    <div class="section-label">Categoría</div>
+    <div class="filter-grp" id="catFilters"></div>
+
+    <div class="section-label">Severidad</div>
+    <div class="filter-grp" id="sevFilters"></div>
+
+    <div class="section-label">Proyectos / palabras clave</div>
+    <div class="kw-list" id="kwList"></div>
+    <div class="kw-add">
+      <input type="text" id="kwInput" placeholder="ej. PE-L1310, MVCS...">
+      <button id="kwAddBtn">+</button>
+    </div>
+    <div class="kw-add" style="margin-top:8px;">
+      <textarea id="bulkInput" placeholder="Pegar cartera completa: un proyecto por línea (código y/o nombre)" rows="3" style="flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--text);font-size:12px;padding:7px 8px;font-family:'Inter';resize:vertical;"></textarea>
+    </div>
+    <button class="btn ghost" id="bulkAddBtn" style="width:100%;margin-top:6px;font-size:12px;padding:7px;">Importar lista completa</button>
+
+    <div class="section-label">Temas ESG vigilados</div>
+    <div class="kw-list" id="esgList"></div>
+    <div class="kw-add">
+      <input type="text" id="esgInput" placeholder="ej. minería informal Perú...">
+      <button id="esgAddBtn">+</button>
+    </div>
+  </aside>
+
+  <main>
+    <div class="toolbar">
+      <div class="last">Último escaneo: <span id="lastScan">nunca</span></div>
+      <div class="last mono" id="countText">0 alertas</div>
+    </div>
+    <div class="feed" id="feed"></div>
+
+    <details style="margin-top:28px;">
+      <summary style="cursor:pointer;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Diagnóstico técnico</summary>
+      <div style="display:flex;align-items:center;gap:10px;margin:12px 0;">
+        <button class="btn ghost" id="testOneBtn" style="font-size:12px;padding:7px 12px;">Probar 1 término (BID Perú)</button>
+        <span style="font-size:11.5px;color:var(--muted);">Muestra el estado HTTP, cuántas búsquedas web hizo el modelo, y una vista previa de su respuesta cruda.</span>
+      </div>
+      <div id="debugBody" style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;max-height:340px;overflow-y:auto;"></div>
+    </details>
+  </main>
+</div>
+
+<script>
+const CATEGORIES = ['tecnico','social','ambiental','gobernanza','reputacional','economico','politico'];
+const CAT_LABELS = {tecnico:'Técnico',social:'Social',ambiental:'Ambiental',gobernanza:'Gobernanza',reputacional:'Reputacional',economico:'Económico',politico:'Político'};
+const DEFAULT_KEYWORDS = [
+  'PE-L1286 5965/OC-PE Transformación Digital',
+  'PE-L1284 6028/OC-PE Mejoramiento y Ampliación de los Servicios',
+  'PE-L1302 6040/OC-PE Mejoramiento integral de los servicios',
+  'PE-L1299 6062/OC-PE Creación del servicio de Acceso a Internet',
+  'PE-L1298 6058/OC-PE Programa de Electrificación Rural',
+  'PE-L1297 6102/OC-PE Programa de mejora de la calidad',
+  'PE-L1305 6114/OC-PE Programa de Innovación Modernización',
+  'PE-L1292 6108/OC-PE Proyecto de tratamiento de aguas residuales',
+  'PE-L1304 6128/OC-PE Mejoramiento del Acceso a los Servicios',
+  'PE-L1294 6133/OC-PE Programa de Apoyo a la Sostenibilidad',
+  'PE-L1224 4873/OC-PE Mejoramiento de los Servicios',
+  'PE-L1227 4555/OC-PE Programa para la Mejora de la Calidad',
+  'PE-L1228 4726/OC-PE Programa de Creación de Redes',
+  'PE-L1230 4959/OC-PE Programa de Mejoramiento de los Servicios',
+  'PE-L1231 4428/OC-PE Proyecto para la Mejora de la Eficiencia',
+  'PE-L1232 4604/SX-PE Proyectos de Inversión Forestal Perú',
+  'PE-L1238 4941/OC-PE Programa Integral de Drenaje Pluvial',
+  'PE-L1239 4725/OC-PE Mejoramiento de los Servicios de Recolección',
+  'PE-L1240 4724/OC-PE Proyecto de Mejoramiento de los Servicios',
+  'PE-L1252 5247/OC-PE Programa de Infraestructura Vial',
+  'PE-L1263 5287/OC-PE Programa de Innovación Modernización',
+  'PE-L1266 5301/OC-PE Proyecto de Mejoramiento de la Administración',
+  'PE-L1010 1717/OC-PE Programa de Garantías Ramal Norte',
+  'PE-L1258 5356/OC-PE Programa para Impulsar el Financiamiento',
+  'PE-L1259 5468/OC-PE Proyecto de Mejoramiento y Ampliación',
+  'PE-L1272 5596/OC-PE Programa de Financiamiento de Mujeres',
+  'PE-L1269 5628/OC-PE Programa Integral de Agua y Saneamiento',
+  'PE-L1250 5696/OC-PE Mejoramiento del Servicio de Abastecimiento',
+  'PE-L1268 5729/OC-PE Programa de Inversión Mejora',
+  'PE-L1256 5737/OC-PE Proyecto de Inversión Mejoramiento',
+  'PE-L1279 5813/OC-PE Programa de Infraestructura Vial',
+  'PE-L1281 5834/OC-PE Proyecto de Transformación Digital',
+  'PE-L1285 5840/OC-PE Proyecto para la Ampliación y Mejora',
+  'PE-L1278 5869/OC-PE Mejoramiento de la Gestión de las Finanzas',
+  'PE-L1288 5893/OC-PE Programa de Apoyo a la Recuperación',
+  'PE-J0001 5935/GR-PE Mejoramiento de los Servicios',
+  'PE-L1290 5936/OC-PE Mejoramiento de los Servicios',
+  'PE-L1280 5941/OC-PE Mejoramiento del Servicio de Inocuidad',
+  'PE-L1293 5961/OC-PE Programa de Impulso a la Vivienda',
+  'PE-L1270 5916/OC-PE Proyecto de Mejoramiento de la Red',
+  'BID Perú',
+  'Banco Interamericano de Desarrollo Perú',
+  'MVCS saneamiento',
+  'SUNASS'
+];
+const DEFAULT_ESG_TOPICS = [
+  'consulta previa comunidades indígenas Perú',
+  'conflicto socioambiental Perú',
+  'licencia ambiental Perú obra pública',
+  'derrame o pasivo ambiental Perú',
+  'corrupción obra pública Perú',
+  'derechos laborales contratista Perú',
+  'cambio climático infraestructura Perú',
+  'transparencia y gobierno corporativo Perú'
+];
+
+let state = {
+  keywords: [...DEFAULT_KEYWORDS],
+  esgTopics: [...DEFAULT_ESG_TOPICS],
+  alerts: [],
+  activeCat: 'todas',
+  activeSev: 'todas',
+  autoScan: false,
+  debugLog: []
+};
+let autoTimer = null;
+
+async function loadState(){
+  try{
+    const kw = await window.storage.get('keywords', true);
+    if(kw) state.keywords = JSON.parse(kw.value);
+  }catch(e){}
+  try{
+    const esg = await window.storage.get('esgTopics', true);
+    if(esg) state.esgTopics = JSON.parse(esg.value);
+  }catch(e){}
+  try{
+    const al = await window.storage.get('alerts', true);
+    if(al) state.alerts = JSON.parse(al.value);
+  }catch(e){}
+  try{
+    const ls = await window.storage.get('lastScan', true);
+    if(ls) document.getElementById('lastScan').textContent = ls.value;
+  }catch(e){}
+  renderKeywords();
+  renderFilters();
+  renderFeed();
+  renderDebug();
+}
+
+async function saveKeywords(){
+  await window.storage.set('keywords', JSON.stringify(state.keywords), true);
+}
+async function saveEsgTopics(){
+  await window.storage.set('esgTopics', JSON.stringify(state.esgTopics), true);
+}
+async function saveAlerts(){
+  await window.storage.set('alerts', JSON.stringify(state.alerts), true);
+}
+
+function renderList(containerId, items, onRemove){
+  const list = document.getElementById(containerId);
+  list.innerHTML = '';
+  items.forEach((kw,i)=>{
+    const el = document.createElement('div');
+    el.className = 'kw-item';
+    el.innerHTML = `<span>${kw}</span><button data-i="${i}">×</button>`;
+    list.appendChild(el);
+  });
+  list.querySelectorAll('button').forEach(b=>{
+    b.onclick = async ()=>{ await onRemove(parseInt(b.dataset.i)); };
+  });
+}
+
+function renderKeywords(){
+  renderList('kwList', state.keywords, async (i)=>{
+    state.keywords.splice(i,1);
+    await saveKeywords();
+    renderKeywords();
+  });
+  renderList('esgList', state.esgTopics, async (i)=>{
+    state.esgTopics.splice(i,1);
+    await saveEsgTopics();
+    renderKeywords();
+  });
+}
+
+function renderFilters(){
+  const catBox = document.getElementById('catFilters');
+  catBox.innerHTML = `<div class="chip ${state.activeCat==='todas'?'active':''}" data-cat="todas">Todas</div>` +
+    CATEGORIES.map(c=>`<div class="chip ${state.activeCat===c?'active':''}" data-cat="${c}">${CAT_LABELS[c]}</div>`).join('');
+  catBox.querySelectorAll('.chip').forEach(c=>{
+    c.onclick = ()=>{ state.activeCat = c.dataset.cat; renderFilters(); renderFeed(); };
+  });
+
+  const sevBox = document.getElementById('sevFilters');
+  const sevs = [['todas','Todas'],['alta','Alta'],['media','Media'],['baja','Baja']];
+  sevBox.innerHTML = sevs.map(([v,l])=>`<div class="chip ${state.activeSev===v?'active':''}" data-sev="${v}">${l}</div>`).join('');
+  sevBox.querySelectorAll('.chip').forEach(c=>{
+    c.onclick = ()=>{ state.activeSev = c.dataset.sev; renderFilters(); renderFeed(); };
+  });
+}
+
+function renderFeed(){
+  const feed = document.getElementById('feed');
+  let items = [...state.alerts].sort((a,b)=> new Date(b.fecha||0) - new Date(a.fecha||0));
+  if(state.activeCat !== 'todas') items = items.filter(a=>a.categoria===state.activeCat);
+  if(state.activeSev !== 'todas') items = items.filter(a=>a.severidad===state.activeSev);
+
+  document.getElementById('cntAlta').textContent = state.alerts.filter(a=>a.severidad==='alta').length;
+  document.getElementById('cntMedia').textContent = state.alerts.filter(a=>a.severidad==='media').length;
+  document.getElementById('cntBaja').textContent = state.alerts.filter(a=>a.severidad==='baja').length;
+  document.getElementById('countText').textContent = `${state.alerts.length} alertas`;
+
+  if(items.length === 0){
+    feed.innerHTML = `<div class="empty"><div class="big">Sin alertas todavía</div><p>Añade palabras clave en el panel izquierdo y presiona "Escanear ahora" para buscar noticias recientes relacionadas a los proyectos del BID en Perú.</p></div>`;
+    return;
+  }
+  feed.innerHTML = items.map(a=>`
+    <div class="card ${a.severidad}">
+      <div class="card-top">
+        <div class="card-title">${a.titulo}</div>
+        <div class="badges">
+          <span class="badge cat">${CAT_LABELS[a.categoria]||a.categoria}</span>
+          <span class="badge ${a.severidad}">${a.severidad}</span>
+        </div>
+      </div>
+      <div class="card-summary">${a.resumen}</div>
+      <div class="card-meta">
+        <span>${a.proyecto ? a.proyecto+' · ' : ''}${a.fuente||'Fuente no especificada'} ${a.fecha?('· '+a.fecha):''}</span>
+        ${a.url ? `<a href="${a.url}" target="_blank" rel="noopener">Ver fuente ↗</a>` : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function extractJson(text){
+  let t = text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
+  const start = t.indexOf('[');
+  const end = t.lastIndexOf(']');
+  if(start !== -1 && end !== -1) t = t.slice(start, end+1);
+  return JSON.parse(t);
+}
+
+function logDebug(entry){
+  state.debugLog.unshift(entry);
+  if(state.debugLog.length > 60) state.debugLog.pop();
+  renderDebug();
+}
+
+function renderDebug(){
+  const box = document.getElementById('debugBody');
+  if(!box) return;
+  box.innerHTML = state.debugLog.map(e=>`
+    <div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:11.5px;">
+      <div class="mono" style="color:var(--muted);">${e.ts} · <span style="color:${e.status===200?'var(--bajo)':'var(--alto)'}">status:${e.status}</span> · búsquedas:${e.searchCalls ?? '-'} · hallazgos:${e.parsed ?? '-'}</div>
+      <div style="color:var(--text);margin:2px 0;">${e.term}</div>
+      ${e.detail ? `<div style="color:var(--alto);">${e.detail}</div>` : ''}
+      ${e.rawPreview ? `<div class="mono" style="color:var(--muted);white-space:pre-wrap;">${e.rawPreview}${e.rawPreview.length>=220?'…':''}</div>` : ''}
+    </div>
+  `).join('') || '<div style="color:var(--muted);font-size:12px;">Sin actividad todavía. Ejecuta un escaneo.</div>';
+}
+
+async function scanKeyword(kw){
+  const prompt = `Eres un analista de riesgo del BID. Te doy un término de vigilancia (puede incluir un código de proyecto tipo PE-Lxxxx, un código de préstamo tipo xxxx/OC-PE, y/o un nombre de programa): "${kw}".
+
+IMPORTANTE — sé ágil y NO busques solo la frase exacta completa, porque casi nunca aparece así en prensa. En vez de eso:
+- Extrae 2-3 palabras sueltas clave del nombre del programa (ej. de "Programa de Electrificación Rural" usa "electrificación rural") y búscalas junto con "Perú" y, si ayuda, una región o sector.
+- Busca también el código de préstamo solo (ej. "6058/OC-PE") y el código de proyecto solo (ej. "PE-L1298"), por si aparecen en portales del Estado peruano (MEF, SUNASS, Contraloría, OSCE) o prensa especializada.
+- Haz 2-4 búsquedas variadas y rápidas, no exhaustivas. Incluye si es posible una búsqueda tipo site:x.com o site:twitter.com y otra en medios peruanos (El Comercio, La República, Gestión, Perú21, RPP, Infobae Perú, Andina, El Peruano).
+- Acepta como relevante cualquier mención real del programa, la obra, la zona de intervención o el sector afectado — no exijas que mencionen al BID explícitamente, la relación con el proyecto puede inferirse del tema y ubicación.
+
+Responde ÚNICAMENTE con un array JSON (sin texto adicional, sin markdown, sin backticks), cada elemento con EXACTAMENTE estos campos:
+[{"proyecto":"código si aplica, o vacío","titulo":"titular breve en español, en tus propias palabras, máx 12 palabras","categoria":"uno de: tecnico, social, ambiental, gobernanza, reputacional, economico, politico","severidad":"uno de: alta, media, baja","resumen":"2 frases en español, en tus propias palabras, nunca cites texto literal","fuente":"nombre del medio o red social","fecha":"YYYY-MM-DD si se conoce","url":"URL de la fuente"}]
+
+Si tras las búsquedas no hay nada real y específico, responde exactamente: []`;
+
+  const debugEntry = { term: kw, ts: new Date().toLocaleTimeString('es-PE') };
+  let response;
+  try{
+    response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 2000,
+        messages: [{ role: "user", content: prompt }],
+        tools: [{ type: "web_search_20250305", name: "web_search" }]
+      })
+    });
+  }catch(networkErr){
+    debugEntry.status = 'network_error';
+    debugEntry.detail = String(networkErr);
+    logDebug(debugEntry);
+    return [];
+  }
+
+  debugEntry.status = response.status;
+  let data;
+  try{
+    data = await response.json();
+  }catch(parseErr){
+    debugEntry.detail = 'Respuesta no es JSON válido';
+    logDebug(debugEntry);
+    return [];
+  }
+
+  if(!response.ok){
+    debugEntry.detail = (data && (data.error?.message || JSON.stringify(data))) || 'Error desconocido';
+    logDebug(debugEntry);
+    return [];
+  }
+
+  const searchCalls = (data.content||[]).filter(b=>b.type==='server_tool_use' && b.name==='web_search').length;
+  const textBlocks = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
+  debugEntry.searchCalls = searchCalls;
+  debugEntry.rawPreview = textBlocks.slice(0,220);
+
+  try{
+    const parsed = extractJson(textBlocks);
+    debugEntry.parsed = parsed.length;
+    logDebug(debugEntry);
+    return parsed;
+  }catch(e){
+    debugEntry.detail = 'JSON no parseable: ' + String(e.message||e);
+    logDebug(debugEntry);
+    return [];
+  }
+}
+
+async function runScan(){
+  const scanBtn = document.getElementById('scanBtn');
+  const statusText = document.getElementById('statusText');
+  scanBtn.disabled = true;
+  scanBtn.textContent = 'Escaneando...';
+  let newCount = 0;
+  const allTerms = [...state.keywords, ...state.esgTopics];
+  let idx = 0;
+
+  for(const kw of allTerms){
+    idx++;
+    statusText.textContent = `(${idx}/${allTerms.length}) ${kw}`;
+    try{
+      const results = await scanKeyword(kw);
+      let addedThisTerm = false;
+      for(const r of results){
+        if(!r.titulo) continue;
+        const exists = state.alerts.some(a => (a.url && a.url===r.url) || a.titulo===r.titulo);
+        if(!exists){
+          state.alerts.unshift({
+            proyecto: r.proyecto||'', titulo: r.titulo, categoria: CATEGORIES.includes(r.categoria)?r.categoria:'tecnico',
+            severidad: ['alta','media','baja'].includes(r.severidad)?r.severidad:'baja',
+            resumen: r.resumen||'', fuente: r.fuente||'', fecha: r.fecha||'', url: r.url||''
+          });
+          newCount++;
+          addedThisTerm = true;
+        }
+      }
+      if(addedThisTerm){ await saveAlerts(); renderFeed(); }
+    }catch(e){ /* continue with next keyword */ }
+  }
+
+  if(state.alerts.length > 300) state.alerts = state.alerts.slice(0,300);
+  await saveAlerts();
+  const now = new Date().toLocaleString('es-PE', {dateStyle:'medium', timeStyle:'short'});
+  await window.storage.set('lastScan', now, true);
+  document.getElementById('lastScan').textContent = now;
+
+  statusText.textContent = 'En espera';
+  scanBtn.disabled = false;
+  scanBtn.textContent = 'Escanear ahora';
+  renderFeed();
+  return newCount;
+}
+
+document.getElementById('scanBtn').onclick = runScan;
+
+document.getElementById('kwAddBtn').onclick = async ()=>{
+  const input = document.getElementById('kwInput');
+  const val = input.value.trim();
+  if(val && !state.keywords.includes(val)){
+    state.keywords.push(val);
+    await saveKeywords();
+    renderKeywords();
+    input.value = '';
+  }
+};
+document.getElementById('kwInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('kwAddBtn').click();
+});
+
+document.getElementById('bulkAddBtn').onclick = async ()=>{
+  const box = document.getElementById('bulkInput');
+  const lines = box.value.split('\n').map(l=>l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(l=>{
+    if(!state.keywords.includes(l)){ state.keywords.push(l); added++; }
+  });
+  if(added){
+    await saveKeywords();
+    renderKeywords();
+    box.value = '';
+  }
+};
+
+document.getElementById('esgAddBtn').onclick = async ()=>{
+  const input = document.getElementById('esgInput');
+  const val = input.value.trim();
+  if(val && !state.esgTopics.includes(val)){
+    state.esgTopics.push(val);
+    await saveEsgTopics();
+    renderKeywords();
+    input.value = '';
+  }
+};
+document.getElementById('esgInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter') document.getElementById('esgAddBtn').click();
+});
+
+document.getElementById('testOneBtn').onclick = async ()=>{
+  const btn = document.getElementById('testOneBtn');
+  btn.disabled = true;
+  btn.textContent = 'Probando...';
+  const results = await scanKeyword('BID Perú');
+  let added = 0;
+  for(const r of results){
+    if(!r.titulo) continue;
+    const exists = state.alerts.some(a => (a.url && a.url===r.url) || a.titulo===r.titulo);
+    if(!exists){
+      state.alerts.unshift({
+        proyecto: r.proyecto||'', titulo: r.titulo, categoria: CATEGORIES.includes(r.categoria)?r.categoria:'tecnico',
+        severidad: ['alta','media','baja'].includes(r.severidad)?r.severidad:'baja',
+        resumen: r.resumen||'', fuente: r.fuente||'', fecha: r.fecha||'', url: r.url||''
+      });
+      added++;
+    }
+  }
+  if(added){ await saveAlerts(); renderFeed(); }
+  btn.disabled = false;
+  btn.textContent = 'Probar 1 término (BID Perú)';
+};
+
+document.getElementById('autoBtn').onclick = ()=>{
+  state.autoScan = !state.autoScan;
+  const btn = document.getElementById('autoBtn');
+  if(state.autoScan){
+    btn.textContent = 'Auto-escaneo: ON (4h)';
+    runScan();
+    autoTimer = setInterval(runScan, 4*60*60*1000);
+  }else{
+    btn.textContent = 'Auto-escaneo: OFF';
+    clearInterval(autoTimer);
+  }
+};
+
+loadState();
+</script>
+</body>
+</html>
