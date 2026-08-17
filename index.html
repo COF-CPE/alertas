@@ -198,33 +198,64 @@
     return { date:new Date().toISOString().slice(0,10), project:DEFAULT_PROJECTS[0], dimension:'tecnico', severity:2, source:'', title:'', url:'' };
   }
 
+  // ---------- almacenamiento (Claude / equipo vía /api/store / navegador) ----------
+  let storageMode = null; // 'claude' | 'equipo' | 'navegador'
+  const hasClaudeStorage = () => (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
+
+  async function storageGet(key){
+    if(hasClaudeStorage()){
+      storageMode = 'claude';
+      try{ const r = await window.storage.get(key, true); return r ? r.value : null; }
+      catch(e){ return null; } // clave inexistente
+    }
+    try{
+      const r = await fetch('/api/store?key='+encodeURIComponent(key));
+      if(r.ok){ const j = await r.json(); storageMode='equipo'; return j ? j.value : null; }
+    }catch(_){}
+    storageMode = 'navegador';
+    try{ return localStorage.getItem('cpe-'+key); }catch(_){ return null; }
+  }
+
+  async function storageSet(key, value){
+    if(hasClaudeStorage()){
+      storageMode = 'claude';
+      try{ await window.storage.set(key, value, true); return true; }catch(e){ return false; }
+    }
+    try{
+      const r = await fetch('/api/store', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, value }) });
+      if(r.ok){ storageMode='equipo'; try{ localStorage.setItem('cpe-'+key, value); }catch(_){ } return true; }
+    }catch(_){}
+    storageMode = 'navegador';
+    try{ localStorage.setItem('cpe-'+key, value); return true; }catch(_){ return false; }
+  }
+
   async function loadData(){
     try{
-      const res = await window.storage.get(STORAGE_KEY, true);
-      if(res && res.value){
-        const parsed = JSON.parse(res.value);
+      const raw = await storageGet(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
         // limpiar restos de datos de ejemplo de versiones anteriores
         state.alerts = parsed.filter(a=>!a.isExample);
         if(state.alerts.length !== parsed.length){
-          try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state.alerts), true); }catch(_){}
+          try{ await storageSet(STORAGE_KEY, JSON.stringify(state.alerts)); }catch(_){}
         }
       }
     }catch(e){ state.alerts = []; }
     try{
-      const kw = await window.storage.get(KEYWORDS_KEY, true);
-      if(kw && kw.value){ state.keywords = JSON.parse(kw.value); }
+      const rawKw = await storageGet(KEYWORDS_KEY);
+      if(rawKw){ state.keywords = JSON.parse(rawKw); }
     }catch(e){ state.keywords = []; }
   }
 
   async function persistAlerts(next){
     state.alerts = next;
-    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(next), true); state.saveError=false; }
-    catch(e){ state.saveError=true; }
+    const ok = await storageSet(STORAGE_KEY, JSON.stringify(next));
+    state.saveError = !ok;
     render();
   }
   async function persistKeywords(){
-    try{ await window.storage.set(KEYWORDS_KEY, JSON.stringify(state.keywords), true); }
-    catch(e){ state.saveError=true; }
+    const ok = await storageSet(KEYWORDS_KEY, JSON.stringify(state.keywords));
+    if(!ok) state.saveError = true;
   }
 
   const normTitle = t => String(t||'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -498,6 +529,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
         ${projects.map(p=>`<option value="${escapeHtml(p)}" ${state.projectFilter===p?'selected':''}>${escapeHtml(p)}</option>`).join('')}
       </select>
       ${state.saveError? `<span class="error-text">No se pudo guardar el último cambio.</span>`:''}
+      ${storageMode==='equipo'? `<span class="meta-faint">✓ Datos compartidos del equipo</span>`:''}
+      ${storageMode==='navegador'? `<span class="meta-faint" title="Para compartir los datos con todo el equipo, despliega api/store.js y conecta Upstash Redis (gratis) en Vercel.">Guardado solo en este navegador</span>`:''}
     </div>`;
 
     // búsqueda IA con alcance
