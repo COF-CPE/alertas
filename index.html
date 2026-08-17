@@ -190,6 +190,7 @@
     showForm:false, form: emptyForm(),
     keywords: [], scanSelection: ['__all__'], newKeyword:'',
     searching:false, searchStatus:'', searchResults:[], searchError:'',
+    showImport:false, importText:'',
   };
   let lineChart=null, barChart=null;
 
@@ -287,6 +288,38 @@
     return null;
   }
 
+  function mapParsedResults(parsed){
+    const today = new Date().toISOString().slice(0,10);
+    const results = parsed.filter(it=>it && it.title).map((it,i)=>({
+      rid:'r-'+Date.now()+'-'+i,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(it.date||'') ? it.date : today,
+      title: String(it.title).slice(0,200),
+      source: String(it.source||'Web'),
+      url: String(it.url||''),
+      dimension: DIM_KEYS.includes(it.dimension) ? it.dimension : 'reputacional',
+      severity: [1,2,3].includes(Number(it.severity)) ? Number(it.severity) : 2,
+      project: String(it.project||'General BID Perú'),
+      checked: true, duplicate:false,
+    }));
+    results.forEach(r=>{ r.duplicate = isDuplicate(r); if(r.duplicate) r.checked=false; });
+    return results;
+  }
+
+  function processImport(){
+    const parsed = parseJsonArrayLoose(state.importText);
+    if(parsed===null){
+      state.searchError = 'No se encontró un JSON válido en el texto pegado. Copia el bloque completo, incluyendo los corchetes [ ].';
+      render(); return;
+    }
+    state.searchError='';
+    state.searchResults = mapParsedResults(parsed);
+    state.showImport = false; state.importText='';
+    state.searchStatus = state.searchResults.length===0
+      ? 'El JSON no contenía hallazgos.'
+      : `${state.searchResults.length} hallazgo${state.searchResults.length!==1?'s':''} importado${state.searchResults.length!==1?'s':''} — revisa, ajusta y agrega.`;
+    render();
+  }
+
   async function runSearch(){
     if(state.searching) return;
     state.searching = true; state.searchError=''; state.searchResults=[];
@@ -296,6 +329,22 @@
     const scanAll = state.scanSelection.includes('__all__');
     const focusTerms = scanAll ? [] : state.scanSelection.slice();
     const today = new Date().toISOString().slice(0,10);
+
+    // 1) Backend propio (Vercel /api/scan) — funciona en alertascpe.vercel.app
+    try{
+      const qs = 'days='+state.windowDays+(focusTerms.length? '&q='+encodeURIComponent(focusTerms.join(',')):'');
+      const r = await fetch('/api/scan?'+qs);
+      if(r.ok){
+        const j = await r.json();
+        if(j && Array.isArray(j.items)){
+          state.searchResults = mapParsedResults(j.items);
+          state.searchStatus = state.searchResults.length===0
+            ? 'Sin resultados relevantes en este momento.'
+            : `${state.searchResults.length} hallazgo${state.searchResults.length!==1?'s':''}${j.classified_by==='heuristica'?' (clasificación automática básica — revisa dimensión y severidad)':''} — revisa, ajusta y agrega.`;
+          state.searching=false; render(); return;
+        }
+      }
+    }catch(_){ /* sin backend: probar API directa (dentro de Claude) */ }
 
     const focusLine = scanAll
       ? 'Escanea de forma AMPLIA: cualquier noticia o mención relevante sobre el BID en Perú, sus proyectos, operaciones, préstamos, sectores (agua, saneamiento, infraestructura, salud, educación, transporte) y contexto país que pueda afectarlos.'
@@ -334,19 +383,7 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
       const parsed = parseJsonArrayLoose(text);
       if(parsed===null) throw Object.assign(new Error('Sin JSON legible'), {kind:'format'});
 
-      const results = parsed.filter(it=>it && it.title).map((it,i)=>({
-        rid:'r-'+Date.now()+'-'+i,
-        date: /^\d{4}-\d{2}-\d{2}$/.test(it.date||'') ? it.date : today,
-        title: String(it.title).slice(0,200),
-        source: String(it.source||'Web'),
-        url: String(it.url||''),
-        dimension: DIM_KEYS.includes(it.dimension) ? it.dimension : 'reputacional',
-        severity: [1,2,3].includes(Number(it.severity)) ? Number(it.severity) : 2,
-        project: String(it.project||'General BID Perú'),
-        checked: true, duplicate:false,
-      }));
-      results.forEach(r=>{ r.duplicate = isDuplicate(r); if(r.duplicate) r.checked=false; });
-
+      const results = mapParsedResults(parsed);
       state.searchResults = results;
       state.searchStatus = results.length===0
         ? 'Sin resultados relevantes en este momento.'
@@ -354,7 +391,7 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
     }catch(e){
       console.error('Búsqueda falló:', e);
       if(e instanceof TypeError){
-        state.searchError = 'Sin conexión con la API. La búsqueda solo funciona con la app abierta dentro de Claude (como artifact), no como archivo suelto en el navegador.';
+        state.searchError = 'Sin conexión con la API. Si la app está en Vercel, falta desplegar el archivo api/scan.js (backend de búsqueda). Mientras tanto, usa "Importar".';
       } else if(e.kind==='http'){
         state.searchError = 'La API respondió con error ('+e.message+'). Espera unos segundos y vuelve a intentar.';
       } else if(e.kind==='format'){
@@ -472,7 +509,16 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
         <button class="btn-search" data-action="run-search" ${state.searching?'disabled':''}>
           ${state.searching? '<span class="spin">◐</span> Buscando…' : 'Buscar ahora'}
         </button>
+        <button class="btn-accent" data-action="toggle-import" style="margin-left:0;">${state.showImport?ICONS.x:ICONS.plus} Importar</button>
       </div>
+      ${state.showImport? `
+      <div style="margin:4px 0 10px;">
+        <textarea id="import-text" style="width:100%;min-height:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none;" placeholder='Pega aquí el bloque JSON de hallazgos, por ejemplo: [{"date":"2026-08-15","title":"…","source":"…","url":"…","dimension":"social","severity":2,"project":"…"}]'>${escapeHtml(state.importText)}</textarea>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
+          <button class="btn-search" style="margin-left:0;" data-action="process-import">Procesar</button>
+          <span class="search-note" style="margin-top:0;">Pídele a Claude en el chat: "escanea noticias del BID Perú y dame el JSON para el monitor", y pega aquí su respuesta. Útil cuando el botón "Buscar ahora" no tiene conexión con la API.</span>
+        </div>
+      </div>` : ''}
       <div class="scope-row">
         <span class="scope-label">Alcance:</span>
         <button class="scope-chip ${scanAll?'active':''}" data-action="scan-chip" data-value="__all__">Escanear todo</button>
@@ -590,6 +636,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
   }
 
   function bindInputs(){
+    const imp = document.getElementById('import-text');
+    if(imp){ imp.addEventListener('input', ()=>{ state.importText = imp.value; }); }
     const kw = document.getElementById('kw-input');
     if(kw){
       kw.addEventListener('input', ()=>{ state.newKeyword = kw.value; });
@@ -659,6 +707,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
     else if(action==='save-alert') addAlert();
     else if(action==='delete-alert') deleteAlert(value);
     else if(action==='run-search') runSearch();
+    else if(action==='toggle-import'){ state.showImport=!state.showImport; state.searchError=''; render(); }
+    else if(action==='process-import') processImport();
     else if(action==='add-results') addSelectedResults();
     else if(action==='discard-results'){ state.searchResults=[]; state.searchStatus=''; render(); }
     else if(action==='scan-chip') toggleScanChip(value);
