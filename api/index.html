@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monitor de riesgo · BID Perú</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root{
+    --bg:#0E1620; --surface:#16212C; --surface-alt:#1C2A37; --border:#25333F;
+    --text:#E7EDF2; --muted:#8CA0AF; --faint:#5C7080; --accent:#4FA6B0;
+    --verde:#3FAE6B; --ambar:#E0A83E; --rojo:#E2543F; --neutral:#46596A;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  #app{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+  h1,h2{font-family:'Space Grotesk',sans-serif;margin:0;}
+  button{font-family:inherit;cursor:pointer;}
+  .eyebrow{color:var(--accent);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.15em;text-transform:uppercase;}
+  .subtitle{color:var(--faint);font-size:12px;max-width:520px;margin-top:4px;}
+  .header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px;}
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;}
+  .segmented{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;}
+  .segmented button{border:none;background:transparent;color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:6px;}
+  .segmented button.active{background:var(--accent);color:#0E1620;font-weight:700;}
+  select.project-select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:8px;padding:6px 10px;}
+  .error-text{color:var(--rojo);font-size:11px;}
+
+  /* búsqueda IA */
+  .search-card{background:linear-gradient(135deg,#16212C,#182b33);border:1px solid var(--accent);border-radius:16px;padding:16px 18px;margin-bottom:24px;}
+  .search-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px;}
+  .search-title{font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px;}
+  .btn-search{display:flex;align-items:center;gap:8px;background:var(--accent);color:#0E1620;font-size:13px;font-weight:700;border:none;border-radius:10px;padding:9px 18px;margin-left:auto;}
+  .btn-search:disabled{opacity:.55;cursor:wait;}
+  .search-status{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+  .scope-label{font-size:11px;color:var(--muted);margin-right:2px;}
+  .scope-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .scope-chip{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);color:var(--faint);background:transparent;display:inline-flex;align-items:center;gap:6px;}
+  .scope-chip.active{color:#0E1620;background:var(--accent);border-color:var(--accent);font-weight:700;}
+  .scope-chip .rm{display:inline-flex;opacity:.7;}
+  .scope-chip .rm svg{width:10px;height:10px;}
+  .kw-add{display:inline-flex;align-items:center;gap:4px;}
+  .kw-input{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;outline:none;width:200px;}
+  .kw-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:5px 10px;font-size:12px;}
+  .search-note{color:var(--faint);font-size:11px;margin-top:8px;}
+  .portfolio-toggle{background:none;border:1px dashed var(--border);color:var(--muted);border-radius:20px;padding:5px 12px;font-size:12px;}
+  .portfolio-panel{margin-top:10px;background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px;}
+  .portfolio-filter{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-size:12px;outline:none;margin-bottom:8px;}
+  .portfolio-list{max-height:220px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;}
+  .portfolio-row{display:flex;align-items:flex-start;gap:8px;padding:5px 4px;border-radius:6px;font-size:12px;}
+  .portfolio-row:hover{background:var(--surface);}
+  .portfolio-row input{margin-top:3px;accent-color:var(--accent);}
+  .portfolio-code{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:11px;white-space:nowrap;}
+  .portfolio-name{color:var(--muted);}
+  .portfolio-actions{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px;}
+
+  /* resultados */
+  .results-panel{margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;}
+  .result-item{display:flex;gap:10px;background:var(--surface-alt);border-radius:10px;padding:10px 12px;margin-bottom:8px;align-items:flex-start;}
+  .result-item input[type=checkbox]{margin-top:4px;accent-color:var(--accent);}
+  .result-main{flex:1;min-width:0;}
+  .result-title{font-size:13px;}
+  .result-meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px;}
+  .sev-pills{display:inline-flex;gap:3px;}
+  .sev-pill{font-size:10px;border:1px solid var(--border);background:transparent;color:var(--faint);border-radius:12px;padding:2px 8px;}
+  .sev-pill.active-1{background:var(--verde);border-color:var(--verde);color:#0E1620;font-weight:700;}
+  .sev-pill.active-2{background:var(--ambar);border-color:var(--ambar);color:#0E1620;font-weight:700;}
+  .sev-pill.active-3{background:var(--rojo);border-color:var(--rojo);color:#0E1620;font-weight:700;}
+  .dim-select{font-size:10px;background:var(--surface);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:2px 6px;}
+  .results-actions{display:flex;gap:10px;margin-top:10px;align-items:center;flex-wrap:wrap;}
+
+  .gauges-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:28px;align-items:stretch;}
+  .overall-card{display:flex;flex-direction:column;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;min-width:220px;}
+  .overall-note{color:var(--faint);font-size:11px;text-align:center;margin-top:6px;}
+  .dims-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;flex:1;min-width:260px;}
+  @media(min-width:640px){.dims-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(min-width:900px){.dims-grid{grid-template-columns:repeat(5,1fr);}}
+  .dim-card{display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:10px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:24px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .card-head svg{width:14px;height:14px;color:var(--faint);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px;}
+  .chip{font-size:11px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);color:var(--faint);background:transparent;}
+  .chip.active{color:var(--chip-color);border-color:var(--chip-color);background:color-mix(in srgb, var(--chip-color) 12%, transparent);}
+  .chart-wrap{height:220px;}
+  .chart-wrap.small{height:170px;}
+  .list-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;}
+  .btn-accent{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid var(--accent);color:var(--accent);font-size:12px;font-weight:600;border-radius:10px;padding:6px 13px;}
+  .btn-accent svg{width:14px;height:14px;}
+  .form-panel{background:var(--surface-alt);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0 16px;}
+  .form-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px;}
+  @media(min-width:640px){.form-grid{grid-template-columns:1fr 1fr;}}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;}
+  .field textarea{min-height:60px;resize:vertical;}
+  .btn-save{background:var(--accent);color:#0E1620;font-size:13px;font-weight:600;border:none;border-radius:10px;padding:9px 16px;}
+  .empty-state{text-align:center;padding:28px 0;color:var(--faint);font-size:13px;}
+  .alert-item{display:flex;gap:12px;background:var(--surface-alt);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--item-color);}
+  .alert-item .content{flex:1;min-width:0;}
+  .alert-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px;}
+  .badge-dim{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;color:var(--dim-color);background:color-mix(in srgb, var(--dim-color) 15%, transparent);}
+  .meta-faint{font-size:10px;color:var(--faint);}
+  .meta-mono{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace;}
+  .badge-dup{font-size:9px;color:var(--faint);border:1px solid var(--border);padding:1px 6px;border-radius:10px;}
+  .badge-ia{font-size:9px;color:var(--accent);border:1px solid var(--accent);padding:1px 6px;border-radius:10px;}
+  .alert-title{font-size:13px;}
+  .alert-source-row{display:flex;align-items:center;gap:8px;margin-top:4px;}
+  .alert-source-row a{color:var(--accent);display:flex;}
+  .btn-delete{background:none;border:none;color:var(--faint);align-self:flex-start;}
+  .loading-box{display:flex;align-items:center;justify-content:center;min-height:280px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;}
+  .spin{display:inline-block;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .gauge-value{font-family:'JetBrains Mono',monospace;font-weight:700;line-height:1;}
+  .gauge-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+  .gauge-sublabel{font-size:10px;font-weight:600;margin-top:1px;}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading-box">Cargando monitor…</div></div>
+
+<script>
+(function(){
+  const DIMENSIONS = [
+    { key:'tecnico', label:'Técnico', color:'#4FA6B0' },
+    { key:'social', label:'Social', color:'#9B87C4' },
+    { key:'reputacional', label:'Reputacional', color:'#D97AA0' },
+    { key:'economico', label:'Económico', color:'#D4A54A' },
+    { key:'politico', label:'Político', color:'#5B8FBF' },
+  ];
+  const DIM_KEYS = DIMENSIONS.map(d=>d.key);
+  const SEVERITIES = [ {value:1,label:'Bajo'}, {value:2,label:'Medio'}, {value:3,label:'Alto'} ];
+  const DEFAULT_PROJECTS = ['General BID Perú'];
+  const PORTFOLIO = [{"code": "PE-L1224", "name": "Mejoramiento de los Servicios de Prevención del Delito en la Población Más Vulnerable al Crimen y la Violencia en El Perú"}, {"code": "PE-L1227", "name": "Programa para la Mejora de la Calidad y Pertinencia de los Servicios de Educación Superior Universitaria y Tecnológica a Nivel Nacional"}, {"code": "PE-L1228", "name": "Programa de \"Creación de Redes Integradas de Salud\""}, {"code": "PE-L1230", "name": "Programa de Mejoramiento de los Servicios de Justicia en Materia Penal en el Perú"}, {"code": "PE-L1231", "name": "Proyecto para la Mejora de la Eficiencia en la Gestión de la Inversión y las Contrataciones Públicas"}, {"code": "PE-L1232", "name": "Proyectos de Inversión Forestal Perú"}, {"code": "PE-L1238", "name": "Programa Integral de Drenaje Pluvial en ciudades priorizadas del Perú"}, {"code": "PE-L1239", "name": "Mejoramiento de los Servicios de Recaudación Tributaria y Aduanera a través de la Transformación Digital"}, {"code": "PE-L1240", "name": "Proyecto de Mejoramiento de los Servicios de Control Gubernamental para un Control Efectivo, Preventivo y Facilitador de la Gestión Pública"}, {"code": "PE-L1252", "name": "Programa de Infraestructura Vial para la Competitividad Regional (Proregión 1)"}, {"code": "PE-L1263", "name": "Programa de Innovación, Modernización Tecnológica y Emprendimiento"}, {"code": "PE-L1266", "name": "Proyecto de Mejoramiento de la Administración Financiera del Sector Público a través de la Transformación Digital."}, {"code": "PE-L1010", "name": "Programa de Garantías Ramal Norte del Amazonas IIRSA"}, {"code": "PE-L1258", "name": "Programa para Impulsar el Financiamiento Sostenible en la Amazonía Peruana – Oportunidad para Apalancar los Bionegocios (Programa para Bionegocios)"}, {"code": "PE-L1259", "name": "Proyecto de Mejoramiento y Ampliación del Servicio de Drenaje Pluvial de la Ciudad de Puerto Maldonado y el Centro Poblado El Triunfo en el Departamento de Madre de Dios"}, {"code": "PE-L1272", "name": "Programa de Financiamiento de Mujeres Emprendedoras en el Perú"}, {"code": "PE-L1269", "name": "Programa Integral de Agua y Saneamiento Rural, segunda fase - PIASAR II"}, {"code": "PE-L1250", "name": "Mejoramiento del Servicio de Abastecimiento Público de Bienes, Servicios y Obras"}, {"code": "PE-L1268", "name": "Programa de Inversión: Mejora de la calidad de los servicios de Educación Superior y Técnico-Productiva a nivel nacional"}, {"code": "PE-L1256", "name": "Proyecto de Inversión Mejoramiento y Ampliación del Servicio de Agua Potable, Alcantarillado Sanitario y Tratamiento de Aguas Residuales en los Distritos de Zarumilla y Aguas Verdes de la Provincia de Zarumilla – Departamento de Tumbes"}, {"code": "PE-L1279", "name": "Programa de Infraestructura Vial para la Competitividad Regional (PROREGION 2)"}, {"code": "PE-L1281", "name": "Proyecto de Transformación Digital con Equidad"}, {"code": "PE-L1285", "name": "Proyecto para la Ampliación y Mejoramiento de los Servicios de Agua Potable y Alcantarillado de la Ciudad de Juliaca - Puno"}, {"code": "PE-L1278", "name": "Mejoramiento de la Gestión de las Finanzas Públicas Subnacionales para la Sostenibilidad Fiscal"}, {"code": "PE-L1288", "name": "Programa de Apoyo a la Recuperación Fiscal y Económica de Perú II"}, {"code": "PE-J0001", "name": "Mejoramiento de los Servicios de la Oficina de Normalización Previsional"}, {"code": "PE-L1290", "name": "Mejoramiento de los Servicios de la Oficina de Normalización Previsional"}, {"code": "PE-L1280", "name": "Mejoramiento del Servicio de Inocuidad Agroalimentaria del SENASA"}, {"code": "PE-L1293", "name": "Programa de Impulso a la Vivienda Social en Perú"}, {"code": "PE-L1270", "name": "Proyecto de Mejoramiento de la Red de Servicios de Innovación, Tranferencia Tecnológica y Extensión Tecnológica Agraria en las Seis Estaciones Experimentales Agrarias del INIA"}, {"code": "PE-L1286", "name": "Proyecto de Transformación Digital del Banco de la Nación"}, {"code": "PE-L1284", "name": "Mejoramiento y Ampliación de los Servicios Operativos o Misionales Institucionales en el Centro Nacional de Planeamiento Estratégico"}, {"code": "PE-L1302", "name": "Mejoramiento integral de los servicios de readaptación social en el Perú"}, {"code": "PE-L1299", "name": "Creación del servicio de Acceso a Internet Fijo de última milla en las regiones Apurímac, Ayacucho y Junín"}, {"code": "PE-L1298", "name": "Programa de Electrificación Rural Sostenible y Productivo en la Amazonía Peruana"}, {"code": "PE-L1297", "name": "Programa de mejora de la calidad de los servicios de Primera Infancia en Perú"}, {"code": "PE-L1305", "name": "Programa de Innovación, Modernización Tecnológica y Emprendimiento II"}, {"code": "PE-L1292", "name": "Proyecto de tratamiento de aguas residuales y drenaje pluvial para la Ciudad de Juliaca, Puno"}, {"code": "PE-L1304", "name": "Mejoramiento del Acceso a los Servicios de Registros Civiles e Identificación de Calidad a Nivel Nacional (Fase II)"}, {"code": "PE-L1294", "name": "Programa de Apoyo a la Sostenibilidad del Modelo de Transporte Fluvial en la Amazonía"}];
+
+  const STORAGE_KEY = 'alerts';
+  const KEYWORDS_KEY = 'scan-keywords';
+  const DAY = 86400000;
+  const COLORS = { verde:'#3FAE6B', ambar:'#E0A83E', rojo:'#E2543F', neutral:'#46596A', text:'#E7EDF2', muted:'#8CA0AF', faint:'#5C7080', border:'#25333F', surfaceAlt:'#1C2A37' };
+
+  const ICONS = {
+    plus:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    x:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    xsmall:'<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    trash:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    external:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+    info:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+    radar:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+  };
+
+  const dimColor = k => (DIMENSIONS.find(d=>d.key===k)||{}).color || COLORS.muted;
+  const dimLabel = k => (DIMENSIONS.find(d=>d.key===k)||{}).label || k;
+
+  function computeScore(subset){
+    if(!subset || subset.length===0) return null;
+    const avg = subset.reduce((s,a)=>s+a.severity,0)/subset.length;
+    const vol = Math.min(1, subset.length/6);
+    return Math.max(0, Math.min(100, Math.round(((avg-1)/2)*70 + vol*30)));
+  }
+  const zoneColor = s => (s==null) ? COLORS.neutral : s<34 ? COLORS.verde : s<67 ? COLORS.ambar : COLORS.rojo;
+  const zoneLabel = s => (s==null) ? 'Sin datos' : s<34 ? 'Verde' : s<67 ? 'Amarillo' : 'Rojo';
+  const formatShort = d => d.toLocaleDateString('es-PE',{day:'2-digit',month:'short'});
+  function formatRelative(ts){
+    const diff = Math.floor((Date.now()-ts)/DAY);
+    if(diff<=0) return 'hoy';
+    if(diff===1) return 'ayer';
+    if(diff<30) return `hace ${diff} días`;
+    return new Date(ts).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  function polar(cx,cy,r,a){ const rad=a*Math.PI/180; return {x:cx+r*Math.cos(rad), y:cy-r*Math.sin(rad)}; }
+  function arcPath(cx,cy,r,s0,s1,steps=24){
+    const a0=180-s0*1.8, a1=180-s1*1.8; let d='';
+    for(let i=0;i<=steps;i++){ const a=a0+(a1-a0)*(i/steps); const p=polar(cx,cy,r,a); d+=(i===0?'M ':'L ')+p.x.toFixed(2)+' '+p.y.toFixed(2)+' '; }
+    return d.trim();
+  }
+  function gaugeSVG(score,size,label,sublabel){
+    const cx=size/2, cy=size/2+size*0.06, r=size*0.38, sw=size*0.11;
+    const color=zoneColor(score), has=score!=null;
+    const tip=polar(cx,cy,r-sw*0.9, has?180-score*1.8:90);
+    const needle = has? `<line x1="${cx}" y1="${cy}" x2="${tip.x}" y2="${tip.y}" stroke="${COLORS.text}" stroke-width="${Math.max(2,size*0.014)}" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="${size*0.035}" fill="${COLORS.text}"/>` : '';
+    return `<div style="display:flex;flex-direction:column;align-items:center;">
+      <svg width="${size}" height="${size*0.72}" viewBox="0 0 ${size} ${size*0.72}">
+        <path d="${arcPath(cx,cy,r,0,33)}" stroke="${COLORS.verde}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="0.85"/>
+        <path d="${arcPath(cx,cy,r,34,66)}" stroke="${COLORS.ambar}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="0.85"/>
+        <path d="${arcPath(cx,cy,r,67,100)}" stroke="${COLORS.rojo}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="0.85"/>
+        ${needle}
+      </svg>
+      <div style="text-align:center;margin-top:-4px;">
+        <div class="gauge-value" style="color:${color};font-size:${size*0.19}px;">${has?score:'—'}</div>
+        <div class="gauge-label">${label}</div>
+        ${sublabel? `<div class="gauge-sublabel" style="color:${color};">${sublabel}</div>` : ''}
+      </div></div>`;
+  }
+  const escapeHtml = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // ---------- state ----------
+  let state = {
+    alerts: [], loading:true, saveError:false,
+    windowDays:30, projectFilter:'all',
+    listDimFilter:[], chartDims:['overall'],
+    showForm:false, form: emptyForm(),
+    keywords: [], scanSelection: ['__all__'], newKeyword:'',
+    showPortfolio:false, portfolioFilter:'', portfolioChecked:[],
+    searching:false, searchStatus:'', searchResults:[], searchError:'',
+    showImport:false, importText:'',
+  };
+  let lineChart=null, barChart=null;
+
+  function emptyForm(){
+    return { date:new Date().toISOString().slice(0,10), project:DEFAULT_PROJECTS[0], dimension:'tecnico', severity:2, source:'', title:'', url:'' };
+  }
+
+  // ---------- almacenamiento (Claude / equipo vía /api/store / navegador) ----------
+  let storageMode = null; // 'claude' | 'equipo' | 'navegador'
+  const hasClaudeStorage = () => (typeof window.storage !== 'undefined' && window.storage && typeof window.storage.get === 'function');
+
+  async function storageGet(key){
+    if(hasClaudeStorage()){
+      storageMode = 'claude';
+      try{ const r = await window.storage.get(key, true); return r ? r.value : null; }
+      catch(e){ return null; } // clave inexistente
+    }
+    try{
+      const r = await fetch('/api/store?key='+encodeURIComponent(key));
+      if(r.ok){ const j = await r.json(); storageMode='equipo'; return j ? j.value : null; }
+    }catch(_){}
+    storageMode = 'navegador';
+    try{ return localStorage.getItem('cpe-'+key); }catch(_){ return null; }
+  }
+
+  async function storageSet(key, value){
+    if(hasClaudeStorage()){
+      storageMode = 'claude';
+      try{ await window.storage.set(key, value, true); return true; }catch(e){ return false; }
+    }
+    try{
+      const r = await fetch('/api/store', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, value }) });
+      if(r.ok){ storageMode='equipo'; try{ localStorage.setItem('cpe-'+key, value); }catch(_){ } return true; }
+    }catch(_){}
+    storageMode = 'navegador';
+    try{ localStorage.setItem('cpe-'+key, value); return true; }catch(_){ return false; }
+  }
+
+  async function loadData(){
+    try{
+      const raw = await storageGet(STORAGE_KEY);
+      if(raw){
+        const parsed = JSON.parse(raw);
+        // limpiar restos de datos de ejemplo de versiones anteriores
+        state.alerts = parsed.filter(a=>!a.isExample);
+        if(state.alerts.length !== parsed.length){
+          try{ await storageSet(STORAGE_KEY, JSON.stringify(state.alerts)); }catch(_){}
+        }
+      }
+    }catch(e){ state.alerts = []; }
+    try{
+      const rawKw = await storageGet(KEYWORDS_KEY);
+      if(rawKw){ state.keywords = JSON.parse(rawKw); }
+    }catch(e){ state.keywords = []; }
+  }
+
+  async function persistAlerts(next){
+    state.alerts = next;
+    const ok = await storageSet(STORAGE_KEY, JSON.stringify(next));
+    state.saveError = !ok;
+    render();
+  }
+  async function persistKeywords(){
+    const ok = await storageSet(KEYWORDS_KEY, JSON.stringify(state.keywords));
+    if(!ok) state.saveError = true;
+  }
+
+  const normTitle = t => String(t||'').toLowerCase().replace(/\s+/g,' ').trim();
+  function isDuplicate(item){
+    return state.alerts.some(a =>
+      (item.url && a.url && a.url === item.url) ||
+      (normTitle(a.title) && normTitle(a.title) === normTitle(item.title))
+    );
+  }
+
+  // ---------- alcance del escaneo ----------
+  function toggleScanChip(val){
+    if(val==='__all__'){ state.scanSelection = ['__all__']; }
+    else {
+      let sel = state.scanSelection.filter(v=>v!=='__all__');
+      sel = sel.includes(val) ? sel.filter(v=>v!==val) : [...sel, val];
+      state.scanSelection = sel.length ? sel : ['__all__'];
+    }
+    render();
+  }
+  function addKeyword(){
+    const kw = state.newKeyword.trim();
+    if(!kw) return;
+    if(!state.keywords.some(k=>k.toLowerCase()===kw.toLowerCase())){
+      state.keywords.push(kw);
+      persistKeywords();
+    }
+    state.scanSelection = state.scanSelection.filter(v=>v!=='__all__').concat([kw]);
+    state.newKeyword='';
+    render();
+  }
+  function removeKeyword(kw){
+    state.keywords = state.keywords.filter(k=>k!==kw);
+    state.scanSelection = state.scanSelection.filter(v=>v!==kw);
+    if(state.scanSelection.length===0) state.scanSelection=['__all__'];
+    persistKeywords();
+    render();
+  }
+  function togglePortfolioCheck(code){
+    state.portfolioChecked = state.portfolioChecked.includes(code)
+      ? state.portfolioChecked.filter(c=>c!==code) : [...state.portfolioChecked, code];
+    render();
+  }
+  function addPortfolioSelected(){
+    if(state.portfolioChecked.length===0) return;
+    const toAdd = state.portfolioChecked.filter(c=>!state.keywords.includes(c));
+    state.keywords = [...state.keywords, ...toAdd];
+    state.scanSelection = state.scanSelection.filter(v=>v!=='__all__').concat(toAdd);
+    if(state.scanSelection.length===0) state.scanSelection=['__all__'];
+    state.portfolioChecked = [];
+    persistKeywords();
+    render();
+  }
+
+  // ---------- búsqueda con IA ----------
+  function parseJsonArrayLoose(text){
+    const clean = String(text||'').replace(/```json|```/g,'').trim();
+    const start = clean.indexOf('[');
+    if(start===-1) return null;
+    let s = clean.slice(start);
+    const end = s.lastIndexOf(']');
+    if(end!==-1){
+      try{ const p = JSON.parse(s.slice(0,end+1)); if(Array.isArray(p)) return p; }catch(_){}
+    }
+    // rescate: si la respuesta llegó cortada, recortar hasta el último objeto completo
+    let cut = s.lastIndexOf('}');
+    while(cut !== -1){
+      try{
+        const p = JSON.parse(s.slice(0,cut+1) + ']');
+        if(Array.isArray(p)) return p;
+      }catch(_){}
+      cut = s.lastIndexOf('}', cut-1);
+    }
+    // caso "[]" o sin objetos completos
+    try{ const p = JSON.parse(s.slice(0, s.indexOf(']')+1)); if(Array.isArray(p)) return p; }catch(_){}
+    return null;
+  }
+
+  function mapParsedResults(parsed){
+    const today = new Date().toISOString().slice(0,10);
+    const results = parsed.filter(it=>it && it.title).map((it,i)=>({
+      rid:'r-'+Date.now()+'-'+i,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(it.date||'') ? it.date : today,
+      title: String(it.title).slice(0,200),
+      source: String(it.source||'Web'),
+      url: String(it.url||''),
+      dimension: DIM_KEYS.includes(it.dimension) ? it.dimension : 'reputacional',
+      severity: [1,2,3].includes(Number(it.severity)) ? Number(it.severity) : 2,
+      project: String(it.project||'General BID Perú'),
+      checked: true, duplicate:false,
+    }));
+    results.forEach(r=>{ r.duplicate = isDuplicate(r); if(r.duplicate) r.checked=false; });
+    return results;
+  }
+
+  function processImport(){
+    const parsed = parseJsonArrayLoose(state.importText);
+    if(parsed===null){
+      state.searchError = 'No se encontró un JSON válido en el texto pegado. Copia el bloque completo, incluyendo los corchetes [ ].';
+      render(); return;
+    }
+    state.searchError='';
+    state.searchResults = mapParsedResults(parsed);
+    state.showImport = false; state.importText='';
+    state.searchStatus = state.searchResults.length===0
+      ? 'El JSON no contenía hallazgos.'
+      : `${state.searchResults.length} hallazgo${state.searchResults.length!==1?'s':''} importado${state.searchResults.length!==1?'s':''} — revisa, ajusta y agrega.`;
+    render();
+  }
+
+  async function runSearch(){
+    if(state.searching) return;
+    state.searching = true; state.searchError=''; state.searchResults=[];
+    state.searchStatus = 'Buscando en la web…';
+    render();
+
+    const scanAll = state.scanSelection.includes('__all__');
+    const focusTerms = scanAll ? [] : state.scanSelection.slice();
+    const today = new Date().toISOString().slice(0,10);
+
+    // 1) Backend propio (Vercel /api/scan) — funciona en alertascpe.vercel.app
+    try{
+      const qs = 'days='+state.windowDays+(focusTerms.length? '&q='+encodeURIComponent(focusTerms.join(',')):'');
+      const r = await fetch('/api/scan?'+qs);
+      if(r.ok){
+        const j = await r.json();
+        if(j && Array.isArray(j.items)){
+          state.searchResults = mapParsedResults(j.items);
+          state.searchStatus = state.searchResults.length===0
+            ? 'Sin resultados relevantes en este momento.'
+            : `${state.searchResults.length} hallazgo${state.searchResults.length!==1?'s':''}${j.classified_by==='heuristica'?' (clasificación automática básica — revisa dimensión y severidad)':''} — revisa, ajusta y agrega.`;
+          state.searching=false; render(); return;
+        }
+      }
+    }catch(_){ /* sin backend: probar API directa (dentro de Claude) */ }
+
+    const focusLine = scanAll
+      ? 'Escanea de forma AMPLIA: cualquier noticia o mención relevante sobre el BID en Perú, sus proyectos, operaciones, préstamos, sectores (agua, saneamiento, infraestructura, salud, educación, transporte) y contexto país que pueda afectarlos.'
+      : `Enfoca la búsqueda ESPECÍFICAMENTE en estos términos/proyectos clave (combínalos con "BID" y "Perú"): ${focusTerms.map(t=>'"'+t+'"').join(', ')}. Solo incluye hallazgos relacionados con estos términos.`;
+
+    const prompt = `Hoy es ${today}. Usa la búsqueda web para encontrar noticias y menciones RECIENTES (últimos ${state.windowDays} días de preferencia) sobre el Banco Interamericano de Desarrollo (BID) en Perú.
+
+${focusLine}
+
+Revisa prensa peruana (Gestión, El Comercio, La República, Andina), comunicados oficiales del BID/iadb.org y menciones relevantes.
+
+Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks y sin citas. Máximo 6 elementos, JSON compacto en una sola línea. Cada elemento con este formato exacto:
+{"date":"YYYY-MM-DD","title":"resumen corto en español (máx 110 caracteres)","source":"medio","url":"enlace","dimension":"tecnico|social|reputacional|economico|politico","severity":1|2|3,"project":"proyecto/operación si se identifica, o 'General BID Perú'"}
+
+Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo alto o crisis potencial. Si no encuentras la fecha exacta, estima el mes. Si no encuentras nada relevante, responde [].`;
+
+    try{
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body: JSON.stringify({
+          model:"claude-sonnet-4-6",
+          max_tokens:1000,
+          messages:[{ role:"user", content: prompt }],
+          tools:[{ type:"web_search_20250305", name:"web_search" }],
+        })
+      });
+      const data = await response.json().catch(()=>null);
+      if(!response.ok){
+        const apiMsg = data && data.error && data.error.message ? String(data.error.message).slice(0,120) : '';
+        throw Object.assign(new Error('HTTP '+response.status+(apiMsg?': '+apiMsg:'')), {kind:'http'});
+      }
+      if(!data || !Array.isArray(data.content)) throw Object.assign(new Error('Respuesta vacía'), {kind:'format'});
+
+      const text = data.content.filter(b=>b.type==='text').map(b=>b.text||'').join('\n');
+      const parsed = parseJsonArrayLoose(text);
+      if(parsed===null) throw Object.assign(new Error('Sin JSON legible'), {kind:'format'});
+
+      const results = mapParsedResults(parsed);
+      state.searchResults = results;
+      state.searchStatus = results.length===0
+        ? 'Sin resultados relevantes en este momento.'
+        : `${results.length} hallazgo${results.length!==1?'s':''} — revisa, ajusta y agrega los que correspondan.`;
+    }catch(e){
+      console.error('Búsqueda falló:', e);
+      if(e instanceof TypeError){
+        state.searchError = 'Sin conexión con la API. Si la app está en Vercel, falta desplegar el archivo api/scan.js (backend de búsqueda). Mientras tanto, usa "Importar".';
+      } else if(e.kind==='http'){
+        state.searchError = 'La API respondió con error ('+e.message+'). Espera unos segundos y vuelve a intentar.';
+      } else if(e.kind==='format'){
+        state.searchError = 'La IA respondió en un formato inesperado. Pulsa "Buscar ahora" otra vez — suele resolverse al reintentar.';
+      } else {
+        state.searchError = 'La búsqueda no se pudo completar ('+(e.message||'error desconocido')+'). Intenta de nuevo.';
+      }
+      state.searchStatus = '';
+    }
+    state.searching = false;
+    render();
+  }
+
+  function addSelectedResults(){
+    const toAdd = state.searchResults.filter(r=>r.checked && !isDuplicate(r));
+    if(toAdd.length===0){ state.searchResults=[]; state.searchStatus='Nada nuevo que agregar.'; render(); return; }
+    const entries = toAdd.map(r=>({
+      id:'a-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
+      ts:new Date(r.date+'T12:00:00').getTime(),
+      project:r.project, dimension:r.dimension, severity:r.severity,
+      source:r.source, title:r.title, url:r.url, fromAI:true,
+    }));
+    state.searchResults=[]; state.searchStatus=`${entries.length} alerta${entries.length!==1?'s':''} agregada${entries.length!==1?'s':''}.`;
+    persistAlerts([...state.alerts, ...entries].sort((a,b)=>b.ts-a.ts));
+  }
+
+  // ---------- manual ----------
+  function addAlert(){
+    const f = state.form;
+    if(!f.title.trim()) return;
+    const entry = {
+      id:'a-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
+      ts:new Date(f.date+'T12:00:00').getTime(),
+      project:f.project.trim()||DEFAULT_PROJECTS[0],
+      dimension:f.dimension, severity:Number(f.severity),
+      source:f.source.trim(), title:f.title.trim(), url:f.url.trim(),
+    };
+    state.form = emptyForm(); state.showForm=false;
+    persistAlerts([...state.alerts, entry].sort((a,b)=>b.ts-a.ts));
+  }
+  const deleteAlert = id => persistAlerts(state.alerts.filter(a=>a.id!==id));
+
+  function getProjects(){
+    const set = new Set(DEFAULT_PROJECTS);
+    state.alerts.forEach(a=>set.add(a.project));
+    return Array.from(set);
+  }
+  const inProject = a => state.projectFilter==='all' || a.project===state.projectFilter;
+  function getWindowStart(){ const d=new Date(); d.setHours(0,0,0,0); return d.getTime()-(state.windowDays-1)*DAY; }
+
+  function computeAll(){
+    const ws = getWindowStart();
+    const windowAlerts = state.alerts.filter(a=>inProject(a) && a.ts>=ws);
+    const overallScore = computeScore(windowAlerts);
+    const dimScores = {};
+    DIMENSIONS.forEach(d=>{ dimScores[d.key]=computeScore(windowAlerts.filter(a=>a.dimension===d.key)); });
+
+    const today=new Date(); today.setHours(0,0,0,0);
+    const chartData=[];
+    for(let i=state.windowDays-1;i>=0;i--){
+      const d=new Date(today.getTime()-i*DAY);
+      const subset = state.alerts.filter(a=>inProject(a) && a.ts>=d.getTime()-6*DAY && a.ts<=d.getTime()+DAY-1);
+      const row={ label:formatShort(d), overall:computeScore(subset) };
+      DIMENSIONS.forEach(dim=>{ row[dim.key]=computeScore(subset.filter(a=>a.dimension===dim.key)); });
+      chartData.push(row);
+    }
+    const weeks=Math.max(1,Math.ceil(state.windowDays/7));
+    const weeklyVolume=[];
+    for(let w=weeks-1;w>=0;w--){
+      const end=today.getTime()-w*7*DAY+DAY-1, start=end-7*DAY+1;
+      const subset=state.alerts.filter(a=>inProject(a)&&a.ts>=start&&a.ts<=end);
+      weeklyVolume.push({ label:formatShort(new Date(start)),
+        bajo:subset.filter(a=>a.severity===1).length,
+        medio:subset.filter(a=>a.severity===2).length,
+        alto:subset.filter(a=>a.severity===3).length });
+    }
+    const listAlerts = state.alerts.filter(inProject).filter(a=>a.ts>=ws)
+      .filter(a=>state.listDimFilter.length===0||state.listDimFilter.includes(a.dimension))
+      .sort((a,b)=>b.ts-a.ts);
+    return { windowAlerts, overallScore, dimScores, chartData, weeklyVolume, listAlerts };
+  }
+
+  // ---------- render ----------
+  function render(){
+    const app = document.getElementById('app');
+    if(state.loading){ app.innerHTML='<div class="loading-box">Cargando monitor…</div>'; return; }
+
+    const { windowAlerts, overallScore, dimScores, chartData, weeklyVolume, listAlerts } = computeAll();
+    const projects = getProjects();
+    const scanAll = state.scanSelection.includes('__all__');
+
+    let html = `<div class="header">
+      <div>
+        <div class="eyebrow">Monitor de riesgo · BID Perú</div>
+        <h1 style="font-size:24px;margin:2px 0 4px;">Menciones, noticias y alertas</h1>
+        <div class="subtitle">Elige el alcance, pulsa "Buscar ahora" y la IA rastrea la web por ti. El semáforo se calcula solo.</div>
+      </div>
+    </div>`;
+
+    html += `<div class="controls">
+      <div class="segmented">${[7,30,90].map(d=>`<button class="${state.windowDays===d?'active':''}" data-action="set-window" data-value="${d}">${d}d</button>`).join('')}</div>
+      <select class="project-select" data-action="set-project">
+        <option value="all" ${state.projectFilter==='all'?'selected':''}>Todos los proyectos</option>
+        ${projects.map(p=>`<option value="${escapeHtml(p)}" ${state.projectFilter===p?'selected':''}>${escapeHtml(p)}</option>`).join('')}
+      </select>
+      ${state.saveError? `<span class="error-text">No se pudo guardar el último cambio.</span>`:''}
+      ${storageMode==='equipo'? `<span class="meta-faint">✓ Datos compartidos del equipo</span>`:''}
+      ${storageMode==='navegador'? `<span class="meta-faint" title="Para compartir los datos con todo el equipo, despliega api/store.js y conecta Upstash Redis (gratis) en Vercel.">Guardado solo en este navegador</span>`:''}
+    </div>`;
+
+    // búsqueda IA con alcance
+    html += `<div class="search-card">
+      <div class="search-top">
+        <span class="search-title">${ICONS.radar} Escaneo de noticias</span>
+        ${state.searchStatus? `<span class="search-status">${escapeHtml(state.searchStatus)}</span>`:''}
+        ${state.searchError? `<span class="error-text">${escapeHtml(state.searchError)}</span>`:''}
+        <button class="btn-search" data-action="run-search" ${state.searching?'disabled':''}>
+          ${state.searching? '<span class="spin">◐</span> Buscando…' : 'Buscar ahora'}
+        </button>
+        <button class="btn-accent" data-action="toggle-import" style="margin-left:0;">${state.showImport?ICONS.x:ICONS.plus} Importar</button>
+      </div>
+      ${state.showImport? `
+      <div style="margin:4px 0 10px;">
+        <textarea id="import-text" style="width:100%;min-height:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px;color:var(--text);font-size:12px;font-family:'JetBrains Mono',monospace;resize:vertical;outline:none;" placeholder='Pega aquí el bloque JSON de hallazgos, por ejemplo: [{"date":"2026-08-15","title":"…","source":"…","url":"…","dimension":"social","severity":2,"project":"…"}]'>${escapeHtml(state.importText)}</textarea>
+        <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
+          <button class="btn-search" style="margin-left:0;" data-action="process-import">Procesar</button>
+          <span class="search-note" style="margin-top:0;">Pídele a Claude en el chat: "escanea noticias del BID Perú y dame el JSON para el monitor", y pega aquí su respuesta. Útil cuando el botón "Buscar ahora" no tiene conexión con la API.</span>
+        </div>
+      </div>` : ''}
+      <div class="scope-row">
+        <span class="scope-label">Alcance:</span>
+        <button class="scope-chip ${scanAll?'active':''}" data-action="scan-chip" data-value="__all__">Escanear todo</button>
+        ${state.keywords.map(kw=>{
+          const proj = PORTFOLIO.find(p=>p.code===kw);
+          const title = proj ? proj.code+' — '+proj.name : '';
+          return `<button class="scope-chip ${state.scanSelection.includes(kw)?'active':''}" title="${escapeHtml(title)}" data-action="scan-chip" data-value="${escapeHtml(kw)}">
+            ${escapeHtml(kw)}
+            <span class="rm" data-action="remove-keyword" data-value="${escapeHtml(kw)}">${ICONS.xsmall}</span>
+          </button>`;
+        }).join('')}
+        <span class="kw-add">
+          <input class="kw-input" id="kw-input" placeholder="Nueva palabra clave…" value="${escapeHtml(state.newKeyword)}"/>
+          <button class="kw-btn" data-action="add-keyword">${ICONS.plus}</button>
+        </span>
+        <button class="portfolio-toggle" data-action="toggle-portfolio">${state.showPortfolio?'Ocultar cartera':`Cartera BID (${PORTFOLIO.length})`}</button>
+      </div>
+      ${state.showPortfolio? renderPortfolio() : ''}
+      <div class="search-note">Con "Escanear todo" la IA busca cualquier mención del BID en Perú. Si seleccionas palabras clave (puedes marcar varias), la búsqueda se enfoca solo en ellas. Las palabras quedan guardadas para todo el equipo.</div>
+      ${state.searchResults.length? renderResults() : ''}
+    </div>`;
+
+    html += `<div class="gauges-row">
+      <div class="overall-card">
+        ${gaugeSVG(overallScore,190,'Nivel general',zoneLabel(overallScore))}
+        <div class="overall-note">${windowAlerts.length} alerta${windowAlerts.length!==1?'s':''} · últimos ${state.windowDays} días</div>
+      </div>
+      <div class="dims-grid">${DIMENSIONS.map(d=>`<div class="dim-card">${gaugeSVG(dimScores[d.key],110,d.label)}</div>`).join('')}</div>
+    </div>`;
+
+    html += `<div class="card">
+      <div class="card-head"><h2 style="font-size:15px;">Evolución del nivel de riesgo</h2><span title="Puntaje = severidad promedio (70%) + volumen de alertas (30%), en ventanas móviles de 7 días.">${ICONS.info}</span></div>
+      <div class="chips">${[{key:'overall',label:'General',color:COLORS.text},...DIMENSIONS].map(d=>`<button class="chip ${state.chartDims.includes(d.key)?'active':''}" style="--chip-color:${d.color};" data-action="toggle-chart-dim" data-value="${d.key}">${d.label}</button>`).join('')}</div>
+      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+    </div>`;
+
+    html += `<div class="card">
+      <h2 style="font-size:15px;margin-bottom:12px;">Volumen de alertas por semana</h2>
+      <div class="chart-wrap small"><canvas id="barChart"></canvas></div>
+    </div>`;
+
+    html += `<div class="card">
+      <div class="list-head">
+        <h2 style="font-size:15px;">Alertas recientes</h2>
+        <button class="btn-accent" data-action="toggle-form">${state.showForm?ICONS.x:ICONS.plus} ${state.showForm?'Cancelar':'Registrar manualmente'}</button>
+      </div>
+      <div class="chips">${DIMENSIONS.map(d=>`<button class="chip ${state.listDimFilter.includes(d.key)?'active':''}" style="--chip-color:${d.color};" data-action="toggle-list-dim" data-value="${d.key}">${d.label}</button>`).join('')}</div>
+      ${state.showForm? renderForm(projects):''}
+      ${listAlerts.length===0
+        ? `<div class="empty-state">No hay alertas en este rango. Usa "Buscar ahora" o regístralas manualmente.</div>`
+        : listAlerts.map(renderAlertItem).join('')}
+    </div>`;
+
+    app.innerHTML = html;
+    bindInputs();
+    drawCharts(chartData, weeklyVolume);
+  }
+
+  function renderPortfolio(){
+    const f = state.portfolioFilter.trim().toLowerCase();
+    const items = PORTFOLIO.filter(p => !f || p.code.toLowerCase().includes(f) || p.name.toLowerCase().includes(f));
+    return `<div class="portfolio-panel">
+      <input class="portfolio-filter" id="portfolio-filter" placeholder="Filtrar por código o palabra…" value="${escapeHtml(state.portfolioFilter)}"/>
+      <div class="portfolio-list">
+        ${items.length===0? `<div class="meta-faint" style="padding:6px;">Sin coincidencias.</div>` : items.map(p=>`
+          <label class="portfolio-row">
+            <input type="checkbox" data-action="portfolio-check" data-value="${p.code}" ${state.portfolioChecked.includes(p.code)?'checked':''} ${state.keywords.includes(p.code)?'disabled':''}/>
+            <span><span class="portfolio-code">${p.code}</span> <span class="portfolio-name">${escapeHtml(p.name)}${state.keywords.includes(p.code)?' (ya agregado)':''}</span></span>
+          </label>`).join('')}
+      </div>
+      <div class="portfolio-actions">
+        <span class="meta-faint">${state.portfolioChecked.length} seleccionado${state.portfolioChecked.length!==1?'s':''}</span>
+        <button class="btn-search" style="margin-left:0;" data-action="add-portfolio" ${state.portfolioChecked.length===0?'disabled':''}>Agregar al alcance</button>
+      </div>
+    </div>`;
+  }
+
+  function renderResults(){
+    return `<div class="results-panel">
+      ${state.searchResults.map(r=>`
+        <div class="result-item" style="${r.duplicate?'opacity:.5;':''}">
+          <input type="checkbox" data-action="toggle-result" data-value="${r.rid}" ${r.checked?'checked':''} ${r.duplicate?'disabled':''}/>
+          <div class="result-main">
+            <div class="result-title">${escapeHtml(r.title)} ${r.duplicate?'<span class="badge-dup">ya registrada</span>':''}</div>
+            <div class="result-meta">
+              <span class="meta-faint">${escapeHtml(r.source)} · ${escapeHtml(r.date)} · ${escapeHtml(r.project)}</span>
+              ${r.url? `<a href="${escapeHtml(r.url)}" target="_blank" rel="noreferrer" style="color:var(--accent);display:flex;">${ICONS.external}</a>`:''}
+              <select class="dim-select" data-action="result-dim" data-value="${r.rid}">
+                ${DIMENSIONS.map(d=>`<option value="${d.key}" ${r.dimension===d.key?'selected':''}>${d.label}</option>`).join('')}
+              </select>
+              <span class="sev-pills">
+                ${SEVERITIES.map(s=>`<button class="sev-pill ${r.severity===s.value?('active-'+s.value):''}" data-action="result-sev" data-value="${r.rid}" data-sev="${s.value}">${s.label}</button>`).join('')}
+              </span>
+            </div>
+          </div>
+        </div>`).join('')}
+      <div class="results-actions">
+        <button class="btn-search" style="margin-left:0;" data-action="add-results">Agregar seleccionadas</button>
+        <button style="background:none;border:none;color:var(--faint);font-size:12px;" data-action="discard-results">Descartar</button>
+      </div>
+    </div>`;
+  }
+
+  function renderForm(projects){
+    const f = state.form;
+    return `<div class="form-panel">
+      <div class="form-grid">
+        <div class="field"><label>Fecha</label><input type="date" id="f-date" value="${f.date}"/></div>
+        <div class="field"><label>Proyecto</label><input list="project-suggestions" id="f-project" value="${escapeHtml(f.project)}"/>
+          <datalist id="project-suggestions">${projects.map(p=>`<option value="${escapeHtml(p)}"></option>`).join('')}</datalist></div>
+        <div class="field"><label>Dimensión</label><select id="f-dimension">${DIMENSIONS.map(d=>`<option value="${d.key}" ${f.dimension===d.key?'selected':''}>${d.label}</option>`).join('')}</select></div>
+        <div class="field"><label>Severidad</label><select id="f-severity">${SEVERITIES.map(s=>`<option value="${s.value}" ${Number(f.severity)===s.value?'selected':''}>${s.label}</option>`).join('')}</select></div>
+        <div class="field"><label>Fuente</label><input id="f-source" value="${escapeHtml(f.source)}" placeholder="Google Alerts, El Comercio, X…"/></div>
+        <div class="field"><label>Enlace (opcional)</label><input id="f-url" value="${escapeHtml(f.url)}" placeholder="https://…"/></div>
+      </div>
+      <div class="field" style="margin-bottom:12px;"><label>Resumen</label><textarea id="f-title" placeholder="Qué se dijo, dónde y por qué importa…">${escapeHtml(f.title)}</textarea></div>
+      <button class="btn-save" data-action="save-alert">Guardar alerta</button>
+    </div>`;
+  }
+
+  function renderAlertItem(a){
+    const c = zoneColor(a.severity===1?10:a.severity===2?50:90);
+    return `<div class="alert-item" style="--item-color:${c};">
+      <div class="content">
+        <div class="alert-meta">
+          <span class="badge-dim" style="--dim-color:${dimColor(a.dimension)};">${dimLabel(a.dimension)}</span>
+          <span class="meta-faint">${escapeHtml(a.project)}</span>
+          <span class="meta-mono">· ${formatRelative(a.ts)}</span>
+          ${a.fromAI? '<span class="badge-ia">IA</span>':''}
+        </div>
+        <div class="alert-title">${escapeHtml(a.title)}</div>
+        <div class="alert-source-row">
+          ${a.source? `<span class="meta-faint">${escapeHtml(a.source)}</span>`:''}
+          ${a.url? `<a href="${escapeHtml(a.url)}" target="_blank" rel="noreferrer">${ICONS.external}</a>`:''}
+        </div>
+      </div>
+      <button class="btn-delete" data-action="delete-alert" data-value="${a.id}">${ICONS.trash}</button>
+    </div>`;
+  }
+
+  function bindInputs(){
+    const pf = document.getElementById('portfolio-filter');
+    if(pf){ pf.addEventListener('input', ()=>{ state.portfolioFilter = pf.value; render(); }); pf.focus(); pf.selectionStart = pf.selectionEnd = pf.value.length; }
+    const imp = document.getElementById('import-text');
+    if(imp){ imp.addEventListener('input', ()=>{ state.importText = imp.value; }); }
+    const kw = document.getElementById('kw-input');
+    if(kw){
+      kw.addEventListener('input', ()=>{ state.newKeyword = kw.value; });
+      kw.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addKeyword(); } });
+    }
+    if(!state.showForm) return;
+    const map = { 'f-date':'date','f-project':'project','f-dimension':'dimension','f-severity':'severity','f-source':'source','f-url':'url','f-title':'title' };
+    Object.keys(map).forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      const fn = ()=>{ state.form[map[id]] = el.value; };
+      el.addEventListener('input', fn);
+      el.addEventListener('change', fn);
+    });
+  }
+
+  function drawCharts(chartData, weeklyVolume){
+    const lineCtx = document.getElementById('lineChart');
+    const barCtx = document.getElementById('barChart');
+    if(lineChart){ lineChart.destroy(); lineChart=null; }
+    if(barChart){ barChart.destroy(); barChart=null; }
+    if(!lineCtx || !barCtx || typeof Chart==='undefined') return;
+
+    const datasets = [];
+    if(state.chartDims.includes('overall')){
+      datasets.push({ label:'General', data:chartData.map(r=>r.overall), borderColor:COLORS.text, backgroundColor:COLORS.text, spanGaps:true, tension:0.35, pointRadius:0, borderWidth:2 });
+    }
+    DIMENSIONS.filter(d=>state.chartDims.includes(d.key)).forEach(d=>{
+      datasets.push({ label:d.label, data:chartData.map(r=>r[d.key]), borderColor:d.color, backgroundColor:d.color, spanGaps:true, tension:0.35, pointRadius:0, borderWidth:2 });
+    });
+
+    lineChart = new Chart(lineCtx, {
+      type:'line',
+      data:{ labels:chartData.map(r=>r.label), datasets },
+      options:{ responsive:true, maintainAspectRatio:false, animation:{duration:250},
+        scales:{ y:{min:0,max:100,ticks:{color:COLORS.faint,font:{size:10}},grid:{color:COLORS.border}},
+                 x:{ticks:{color:COLORS.faint,font:{size:10},maxRotation:0,autoSkip:true},grid:{display:false}} },
+        plugins:{ legend:{display:false},
+          tooltip:{ backgroundColor:COLORS.surfaceAlt, titleColor:COLORS.faint, bodyColor:COLORS.text, borderColor:COLORS.border, borderWidth:1,
+            titleFont:{family:"'JetBrains Mono',monospace",size:11}, bodyFont:{family:"'JetBrains Mono',monospace",size:11} } } }
+    });
+    barChart = new Chart(barCtx, {
+      type:'bar',
+      data:{ labels:weeklyVolume.map(r=>r.label), datasets:[
+        { label:'Bajo', data:weeklyVolume.map(r=>r.bajo), backgroundColor:COLORS.verde, stack:'v' },
+        { label:'Medio', data:weeklyVolume.map(r=>r.medio), backgroundColor:COLORS.ambar, stack:'v' },
+        { label:'Alto', data:weeklyVolume.map(r=>r.alto), backgroundColor:COLORS.rojo, stack:'v' } ] },
+      options:{ responsive:true, maintainAspectRatio:false, animation:{duration:250},
+        scales:{ y:{beginAtZero:true,stacked:true,ticks:{color:COLORS.faint,font:{size:10},precision:0},grid:{color:COLORS.border}},
+                 x:{stacked:true,ticks:{color:COLORS.faint,font:{size:10}},grid:{display:false}} },
+        plugins:{ legend:{display:false},
+          tooltip:{backgroundColor:COLORS.surfaceAlt,titleColor:COLORS.faint,bodyColor:COLORS.text,borderColor:COLORS.border,borderWidth:1} } }
+    });
+  }
+
+  // ---------- events ----------
+  document.getElementById('app').addEventListener('click', (e)=>{
+    const rm = e.target.closest('[data-action="remove-keyword"]');
+    if(rm){ e.stopPropagation(); removeKeyword(rm.dataset.value); return; }
+    const el = e.target.closest('[data-action]');
+    if(!el) return;
+    const action = el.dataset.action, value = el.dataset.value;
+    if(action==='set-window'){ state.windowDays=Number(value); render(); }
+    else if(action==='toggle-chart-dim'){ state.chartDims = state.chartDims.includes(value)? state.chartDims.filter(k=>k!==value):[...state.chartDims,value]; render(); }
+    else if(action==='toggle-list-dim'){ state.listDimFilter = state.listDimFilter.includes(value)? state.listDimFilter.filter(k=>k!==value):[...state.listDimFilter,value]; render(); }
+    else if(action==='toggle-form'){ state.showForm=!state.showForm; render(); }
+    else if(action==='save-alert') addAlert();
+    else if(action==='delete-alert') deleteAlert(value);
+    else if(action==='run-search') runSearch();
+    else if(action==='toggle-portfolio'){ state.showPortfolio=!state.showPortfolio; render(); }
+    else if(action==='portfolio-check') togglePortfolioCheck(value);
+    else if(action==='add-portfolio') addPortfolioSelected();
+    else if(action==='toggle-import'){ state.showImport=!state.showImport; state.searchError=''; render(); }
+    else if(action==='process-import') processImport();
+    else if(action==='add-results') addSelectedResults();
+    else if(action==='discard-results'){ state.searchResults=[]; state.searchStatus=''; render(); }
+    else if(action==='scan-chip') toggleScanChip(value);
+    else if(action==='add-keyword') addKeyword();
+    else if(action==='toggle-result'){
+      const r = state.searchResults.find(x=>x.rid===value);
+      if(r && !r.duplicate){ r.checked = el.checked; }
+    }
+    else if(action==='result-sev'){
+      const r = state.searchResults.find(x=>x.rid===value);
+      if(r){ r.severity = Number(el.dataset.sev); render(); }
+    }
+  });
+  document.getElementById('app').addEventListener('change', (e)=>{
+    if(e.target.matches('[data-action="set-project"]')){ state.projectFilter=e.target.value; render(); }
+    else if(e.target.matches('[data-action="result-dim"]')){
+      const r = state.searchResults.find(x=>x.rid===e.target.dataset.value);
+      if(r) r.dimension = e.target.value;
+    }
+  });
+
+  // ---------- init ----------
+  (async function init(){
+    state.loading=true; render();
+    await loadData();
+    state.loading=false; render();
+  })();
+})();
+</script>
+</body>
+</html>

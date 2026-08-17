@@ -9,6 +9,45 @@
 
 const DIMS = ['tecnico', 'social', 'reputacional', 'economico', 'politico'];
 
+
+const PORTFOLIO = [{"code": "PE-L1224", "name": "Mejoramiento de los Servicios de Prevención del Delito en la Población Más Vulnerable al Crimen y la Violencia en El Perú"}, {"code": "PE-L1227", "name": "Programa para la Mejora de la Calidad y Pertinencia de los Servicios de Educación Superior Universitaria y Tecnológica a Nivel Nacional"}, {"code": "PE-L1228", "name": "Programa de \"Creación de Redes Integradas de Salud\""}, {"code": "PE-L1230", "name": "Programa de Mejoramiento de los Servicios de Justicia en Materia Penal en el Perú"}, {"code": "PE-L1231", "name": "Proyecto para la Mejora de la Eficiencia en la Gestión de la Inversión y las Contrataciones Públicas"}, {"code": "PE-L1232", "name": "Proyectos de Inversión Forestal Perú"}, {"code": "PE-L1238", "name": "Programa Integral de Drenaje Pluvial en ciudades priorizadas del Perú"}, {"code": "PE-L1239", "name": "Mejoramiento de los Servicios de Recaudación Tributaria y Aduanera a través de la Transformación Digital"}, {"code": "PE-L1240", "name": "Proyecto de Mejoramiento de los Servicios de Control Gubernamental para un Control Efectivo, Preventivo y Facilitador de la Gestión Pública"}, {"code": "PE-L1252", "name": "Programa de Infraestructura Vial para la Competitividad Regional (Proregión 1)"}, {"code": "PE-L1263", "name": "Programa de Innovación, Modernización Tecnológica y Emprendimiento"}, {"code": "PE-L1266", "name": "Proyecto de Mejoramiento de la Administración Financiera del Sector Público a través de la Transformación Digital."}, {"code": "PE-L1010", "name": "Programa de Garantías Ramal Norte del Amazonas IIRSA"}, {"code": "PE-L1258", "name": "Programa para Impulsar el Financiamiento Sostenible en la Amazonía Peruana – Oportunidad para Apalancar los Bionegocios (Programa para Bionegocios)"}, {"code": "PE-L1259", "name": "Proyecto de Mejoramiento y Ampliación del Servicio de Drenaje Pluvial de la Ciudad de Puerto Maldonado y el Centro Poblado El Triunfo en el Departamento de Madre de Dios"}, {"code": "PE-L1272", "name": "Programa de Financiamiento de Mujeres Emprendedoras en el Perú"}, {"code": "PE-L1269", "name": "Programa Integral de Agua y Saneamiento Rural, segunda fase - PIASAR II"}, {"code": "PE-L1250", "name": "Mejoramiento del Servicio de Abastecimiento Público de Bienes, Servicios y Obras"}, {"code": "PE-L1268", "name": "Programa de Inversión: Mejora de la calidad de los servicios de Educación Superior y Técnico-Productiva a nivel nacional"}, {"code": "PE-L1256", "name": "Proyecto de Inversión Mejoramiento y Ampliación del Servicio de Agua Potable, Alcantarillado Sanitario y Tratamiento de Aguas Residuales en los Distritos de Zarumilla y Aguas Verdes de la Provincia de Zarumilla – Departamento de Tumbes"}, {"code": "PE-L1279", "name": "Programa de Infraestructura Vial para la Competitividad Regional (PROREGION 2)"}, {"code": "PE-L1281", "name": "Proyecto de Transformación Digital con Equidad"}, {"code": "PE-L1285", "name": "Proyecto para la Ampliación y Mejoramiento de los Servicios de Agua Potable y Alcantarillado de la Ciudad de Juliaca - Puno"}, {"code": "PE-L1278", "name": "Mejoramiento de la Gestión de las Finanzas Públicas Subnacionales para la Sostenibilidad Fiscal"}, {"code": "PE-L1288", "name": "Programa de Apoyo a la Recuperación Fiscal y Económica de Perú II"}, {"code": "PE-J0001", "name": "Mejoramiento de los Servicios de la Oficina de Normalización Previsional"}, {"code": "PE-L1290", "name": "Mejoramiento de los Servicios de la Oficina de Normalización Previsional"}, {"code": "PE-L1280", "name": "Mejoramiento del Servicio de Inocuidad Agroalimentaria del SENASA"}, {"code": "PE-L1293", "name": "Programa de Impulso a la Vivienda Social en Perú"}, {"code": "PE-L1270", "name": "Proyecto de Mejoramiento de la Red de Servicios de Innovación, Tranferencia Tecnológica y Extensión Tecnológica Agraria en las Seis Estaciones Experimentales Agrarias del INIA"}, {"code": "PE-L1286", "name": "Proyecto de Transformación Digital del Banco de la Nación"}, {"code": "PE-L1284", "name": "Mejoramiento y Ampliación de los Servicios Operativos o Misionales Institucionales en el Centro Nacional de Planeamiento Estratégico"}, {"code": "PE-L1302", "name": "Mejoramiento integral de los servicios de readaptación social en el Perú"}, {"code": "PE-L1299", "name": "Creación del servicio de Acceso a Internet Fijo de última milla en las regiones Apurímac, Ayacucho y Junín"}, {"code": "PE-L1298", "name": "Programa de Electrificación Rural Sostenible y Productivo en la Amazonía Peruana"}, {"code": "PE-L1297", "name": "Programa de mejora de la calidad de los servicios de Primera Infancia en Perú"}, {"code": "PE-L1305", "name": "Programa de Innovación, Modernización Tecnológica y Emprendimiento II"}, {"code": "PE-L1292", "name": "Proyecto de tratamiento de aguas residuales y drenaje pluvial para la Ciudad de Juliaca, Puno"}, {"code": "PE-L1304", "name": "Mejoramiento del Acceso a los Servicios de Registros Civiles e Identificación de Calidad a Nivel Nacional (Fase II)"}, {"code": "PE-L1294", "name": "Programa de Apoyo a la Sostenibilidad del Modelo de Transporte Fluvial en la Amazonía"}];
+
+const STOPWORDS = new Set(['de','del','la','las','los','el','en','para','con','su','sus','al','por','como','que','mas','más','y','a','un','una','uno',
+  'mejoramiento','programa','proyecto','proyectos','servicio','servicios','nacional','peru','perú','republica','república','gestion','gestión',
+  'mejora','ampliacion','ampliación','inversion','inversión','apoyo','integral','sostenible','publica','pública','publico','público','sector','nivel','fase']);
+
+function distinctiveTerms(name, n) {
+  n = n || 4;
+  const words = String(name).replace(/["]/g,'').split(/[^\p{L}]+/u).filter(Boolean);
+  const seen = new Set();
+  const picked = [];
+  for (const w of words) {
+    const lw = w.toLowerCase();
+    if (w.length < 5 || STOPWORDS.has(lw) || seen.has(lw)) continue;
+    seen.add(lw);
+    picked.push(w);
+    if (picked.length >= n) break;
+  }
+  return picked;
+}
+
+function findProjectByCode(code) {
+  const c = String(code || '').trim().toUpperCase();
+  return PORTFOLIO.find(p => p.code.toUpperCase() === c) || null;
+}
+
+function tagProject(title) {
+  const t = String(title || '').toLowerCase();
+  let best = null, bestScore = 0;
+  for (const p of PORTFOLIO) {
+    const terms = distinctiveTerms(p.name, 6);
+    let score = 0;
+    for (const term of terms) { if (t.includes(term.toLowerCase())) score++; }
+    if (score > bestScore) { bestScore = score; best = p; }
+  }
+  return bestScore >= 2 ? best : null;
+}
+
 function heuristica(titulo) {
   const t = titulo.toLowerCase();
   if (/(protesta|paro|huelga|conflicto social|comunidad|vecinos|reclamo)/.test(t)) return { dimension: 'social', severity: 2 };
@@ -116,9 +155,16 @@ export default async function handler(req, res) {
     const days = Math.min(90, Math.max(1, parseInt(req.query.days) || 30));
 
     const base = '("BID" OR "Banco Interamericano de Desarrollo") Perú';
-    const focus = q
-      ? ' (' + q.split(',').map(s => '"' + s.trim() + '"').filter(s => s.length > 2).join(' OR ') + ')'
-      : '';
+    const rawTerms = q ? q.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const clauses = rawTerms.map(term => {
+      const proj = /^PE-[A-Z]\d{3,4}$/i.test(term) ? findProjectByCode(term) : null;
+      if (proj) {
+        const words = distinctiveTerms(proj.name, 4);
+        return words.length ? words.join(' ') : term;
+      }
+      return '"' + term + '"';
+    });
+    const focus = clauses.length ? ' (' + clauses.join(' OR ') + ')' : '';
     const query = base + focus + ' when:' + days + 'd';
     const url = 'https://news.google.com/rss/search?q=' + encodeURIComponent(query) + '&hl=es-419&gl=PE&ceid=PE:es-419';
 
@@ -143,6 +189,7 @@ export default async function handler(req, res) {
 
     let out = items.map(it => {
       const h = heuristica(it.title);
+      const proj = tagProject(it.title);
       return {
         date: it.date,
         title: it.title.slice(0, 180),
@@ -150,7 +197,7 @@ export default async function handler(req, res) {
         url: it.url,
         dimension: h.dimension,
         severity: h.severity,
-        project: 'General BID Perú',
+        project: proj ? (proj.code + ' — ' + proj.name) : 'General BID Perú',
       };
     });
 
