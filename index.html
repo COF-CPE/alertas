@@ -110,6 +110,13 @@
   .alert-source-row{display:flex;align-items:center;gap:8px;margin-top:4px;}
   .alert-source-row a{color:var(--accent);display:flex;}
   .btn-delete{background:none;border:none;color:var(--faint);align-self:flex-start;}
+  .gate-wrap{min-height:70vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .gate-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:32px 28px;max-width:340px;width:100%;text-align:center;}
+  .gate-card input{width:100%;background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;margin:16px 0 10px;text-align:center;}
+  .gate-card button{width:100%;background:var(--accent);color:#0E1620;font-size:13px;font-weight:700;border:none;border-radius:10px;padding:10px;}
+  .gate-error{color:var(--rojo);font-size:12px;margin-top:8px;}
+  .gate-note{color:var(--faint);font-size:11px;margin-top:14px;}
+  .logout-link{background:none;border:none;color:var(--faint);font-size:11px;text-decoration:underline;}
   .loading-box{display:flex;align-items:center;justify-content:center;min-height:280px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;}
   .spin{display:inline-block;animation:spin 1s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -154,7 +161,7 @@
   const dimLabel = k => (DIMENSIONS.find(d=>d.key===k)||{}).label || k;
 
   function computeScore(subset){
-    if(!subset || subset.length===0) return null;
+    if(!subset || subset.length===0) return 0;
     const avg = subset.reduce((s,a)=>s+a.severity,0)/subset.length;
     const vol = Math.min(1, subset.length/6);
     return Math.max(0, Math.min(100, Math.round(((avg-1)/2)*70 + vol*30)));
@@ -203,6 +210,7 @@
     showForm:false, form: emptyForm(),
     keywords: [], scanSelection: ['__all__'], newKeyword:'',
     showPortfolio:false, portfolioFilter:'', portfolioChecked:[],
+    authOk:null, authToken:null, authPassword:'', authError:'', authSubmitting:false,
     searching:false, searchStatus:'', searchResults:[], searchError:'',
     showImport:false, importText:'',
   };
@@ -210,6 +218,59 @@
 
   function emptyForm(){
     return { date:new Date().toISOString().slice(0,10), project:DEFAULT_PROJECTS[0], dimension:'tecnico', severity:2, source:'', title:'', url:'' };
+  }
+
+  // ---------- autenticación (solo fuera de Claude) ----------
+  function authHeaders(extra){
+    const h = Object.assign({}, extra||{});
+    if(state.authToken) h['x-cpe-auth'] = state.authToken;
+    return h;
+  }
+  function handleUnauthorized(msg){
+    try{ localStorage.removeItem('cpe-auth-token'); }catch(_){}
+    state.authToken = null;
+    state.authOk = false;
+    state.authError = msg || 'Tu sesión expiró o la contraseña cambió. Ingresa de nuevo.';
+    render();
+  }
+  async function checkAuth(){
+    if(hasClaudeStorage()){ state.authOk = true; return; }
+    let token = null;
+    try{ token = localStorage.getItem('cpe-auth-token'); }catch(_){}
+    if(token){ state.authToken = token; state.authOk = true; return; }
+    try{
+      const r = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:''}) });
+      if(r.status === 501){ state.authOk = true; return; } // sin contraseña configurada en el servidor
+      state.authOk = false; // el servidor exige contraseña (401 esperado)
+    }catch(e){
+      state.authOk = true; // sin backend disponible: no se puede exigir contraseña de todos modos
+    }
+  }
+  async function submitPassword(){
+    if(state.authSubmitting) return;
+    state.authSubmitting = true; state.authError=''; render();
+    try{
+      const r = await fetch('/api/auth', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password:state.authPassword}) });
+      const j = await r.json().catch(()=>({}));
+      if(r.ok && j.ok){
+        try{ localStorage.setItem('cpe-auth-token', j.token); }catch(_){}
+        state.authToken = j.token; state.authOk = true; state.authPassword=''; state.authSubmitting=false;
+        state.loading = true; render();
+        await loadData();
+        state.loading = false; render();
+        return;
+      }
+      state.authError = j.error || 'Contraseña incorrecta.';
+    }catch(e){
+      state.authError = 'No se pudo verificar la contraseña (sin conexión con el servidor).';
+    }
+    state.authSubmitting = false;
+    render();
+  }
+  function logout(){
+    try{ localStorage.removeItem('cpe-auth-token'); }catch(_){}
+    state.authToken = null; state.authOk = false; state.authPassword=''; state.authError='';
+    render();
   }
 
   // ---------- almacenamiento (Claude / equipo vía /api/store / navegador) ----------
@@ -223,7 +284,8 @@
       catch(e){ return null; } // clave inexistente
     }
     try{
-      const r = await fetch('/api/store?key='+encodeURIComponent(key));
+      const r = await fetch('/api/store?key='+encodeURIComponent(key), { headers: authHeaders() });
+      if(r.status===401){ handleUnauthorized(); return null; }
       if(r.ok){ const j = await r.json(); storageMode='equipo'; return j ? j.value : null; }
     }catch(_){}
     storageMode = 'navegador';
@@ -236,7 +298,8 @@
       try{ await window.storage.set(key, value, true); return true; }catch(e){ return false; }
     }
     try{
-      const r = await fetch('/api/store', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key, value }) });
+      const r = await fetch('/api/store', { method:'POST', headers: authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({ key, value }) });
+      if(r.status===401){ handleUnauthorized(); return false; }
       if(r.ok){ storageMode='equipo'; try{ localStorage.setItem('cpe-'+key, value); }catch(_){ } return true; }
     }catch(_){}
     storageMode = 'navegador';
@@ -393,7 +456,8 @@
     // 1) Backend propio (Vercel /api/scan) — funciona en alertascpe.vercel.app
     try{
       const qs = 'days='+state.windowDays+(focusTerms.length? '&q='+encodeURIComponent(focusTerms.join(',')):'');
-      const r = await fetch('/api/scan?'+qs);
+      const r = await fetch('/api/scan?'+qs, { headers: authHeaders() });
+      if(r.status===401){ handleUnauthorized('Tu sesión expiró. Ingresa la contraseña de nuevo para buscar.'); state.searching=false; return; }
       if(r.ok){
         const j = await r.json();
         if(j && Array.isArray(j.items)){
@@ -537,7 +601,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
   // ---------- render ----------
   function render(){
     const app = document.getElementById('app');
-    if(state.loading){ app.innerHTML='<div class="loading-box">Cargando monitor…</div>'; return; }
+    if(state.authOk===false){ renderGate(); return; }
+    if(state.loading || state.authOk===null){ app.innerHTML='<div class="loading-box">Cargando monitor…</div>'; return; }
 
     const { windowAlerts, overallScore, dimScores, chartData, weeklyVolume, listAlerts } = computeAll();
     const projects = getProjects();
@@ -549,6 +614,7 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
         <h1 style="font-size:24px;margin:2px 0 4px;">Menciones, noticias y alertas</h1>
         <div class="subtitle">Elige el alcance, pulsa "Buscar ahora" y la IA rastrea la web por ti. El semáforo se calcula solo.</div>
       </div>
+      ${state.authToken? `<button class="logout-link" data-action="logout">Salir</button>` : ''}
     </div>`;
 
     html += `<div class="controls">
@@ -656,6 +722,27 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
         <button class="btn-search" style="margin-left:0;" data-action="add-portfolio" ${state.portfolioChecked.length===0?'disabled':''}>Agregar al alcance</button>
       </div>
     </div>`;
+  }
+
+  function renderGate(){
+    const app = document.getElementById('app');
+    app.innerHTML = `<div class="gate-wrap">
+      <div class="gate-card">
+        <div class="eyebrow">Monitor de riesgo · BID Perú</div>
+        <h1 style="font-size:18px;margin:8px 0 4px;">Acceso del equipo</h1>
+        <div class="subtitle" style="margin:0 auto;">Ingresa la contraseña compartida para ver y registrar alertas.</div>
+        <input type="password" id="gate-password" placeholder="Contraseña" value="${escapeHtml(state.authPassword)}" autofocus/>
+        <button data-action="submit-password" ${state.authSubmitting?'disabled':''}>${state.authSubmitting? 'Verificando…':'Entrar'}</button>
+        ${state.authError? `<div class="gate-error">${escapeHtml(state.authError)}</div>`:''}
+        <div class="gate-note">La contraseña la define el administrador del panel en la configuración de Vercel.</div>
+      </div>
+    </div>`;
+    const input = document.getElementById('gate-password');
+    if(input){
+      input.focus();
+      input.addEventListener('input', ()=>{ state.authPassword = input.value; });
+      input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); submitPassword(); } });
+    }
   }
 
   function renderResults(){
@@ -798,6 +885,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
     else if(action==='toggle-portfolio'){ state.showPortfolio=!state.showPortfolio; render(); }
     else if(action==='portfolio-check') togglePortfolioCheck(value);
     else if(action==='add-portfolio') addPortfolioSelected();
+    else if(action==='submit-password') submitPassword();
+    else if(action==='logout') logout();
     else if(action==='toggle-import'){ state.showImport=!state.showImport; state.searchError=''; render(); }
     else if(action==='process-import') processImport();
     else if(action==='add-results') addSelectedResults();
@@ -824,6 +913,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
   // ---------- init ----------
   (async function init(){
     state.loading=true; render();
+    await checkAuth();
+    if(!state.authOk){ render(); return; }
     await loadData();
     state.loading=false; render();
   })();
