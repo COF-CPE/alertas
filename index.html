@@ -1,613 +1,516 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Torre de Monitoreo · BID Perú</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Monitor de riesgo · BID Perú</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
   :root{
-    --bg:#0A0F1A;
-    --panel:#111927;
-    --panel-2:#161F2F;
-    --line:#232E42;
-    --text:#E7ECF3;
-    --muted:#8291A8;
-    --accent:#2DD4BF;
-    --accent-dim:#1B4B47;
-    --alto:#F87171;
-    --alto-dim:#3B1B1E;
-    --medio:#FBBF24;
-    --medio-dim:#3A2F10;
-    --bajo:#34D399;
-    --bajo-dim:#123528;
+    --bg:#0E1620; --surface:#16212C; --surface-alt:#1C2A37; --border:#25333F;
+    --text:#E7EDF2; --muted:#8CA0AF; --faint:#5C7080; --accent:#4FA6B0;
+    --verde:#3FAE6B; --ambar:#E0A83E; --rojo:#E2543F; --neutral:#46596A;
+    --c-tecnico:#4FA6B0; --c-social:#9B87C4; --c-reputacional:#D97AA0; --c-economico:#D4A54A; --c-politico:#5B8FBF;
   }
-  *{box-sizing:border-box;margin:0;padding:0;}
-  body{
-    background:var(--bg);
-    color:var(--text);
-    font-family:'Inter',sans-serif;
-    min-height:100vh;
-    background-image:
-      radial-gradient(circle at 15% 0%, rgba(45,212,191,0.06), transparent 40%),
-      radial-gradient(circle at 85% 20%, rgba(248,113,113,0.04), transparent 40%);
-  }
-  .mono{font-family:'JetBrains Mono',monospace;}
-  header{
-    display:flex;align-items:center;justify-content:space-between;
-    padding:20px 28px;border-bottom:1px solid var(--line);
-    position:sticky;top:0;background:rgba(10,15,26,0.92);backdrop-filter:blur(6px);z-index:10;
-  }
-  .brand{display:flex;align-items:center;gap:14px;}
-  .brand .mark{
-    width:36px;height:36px;border-radius:8px;
-    background:linear-gradient(135deg,var(--accent),#1793FF);
-    display:flex;align-items:center;justify-content:center;
-    font-family:'Space Grotesk';font-weight:700;color:#04140F;font-size:15px;
-  }
-  .brand h1{font-family:'Space Grotesk';font-weight:600;font-size:17px;letter-spacing:0.2px;}
-  .brand .sub{font-size:12px;color:var(--muted);margin-top:2px;}
-  .status{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);}
-  .pulse{width:8px;height:8px;border-radius:50%;background:var(--accent);position:relative;}
-  .pulse::after{
-    content:'';position:absolute;inset:-4px;border-radius:50%;border:1px solid var(--accent);
-    animation:ping 2.2s cubic-bezier(0,0,0.2,1) infinite;
-  }
-  @keyframes ping{0%{transform:scale(0.6);opacity:0.8;}100%{transform:scale(2.2);opacity:0;}}
-  .btn{
-    font-family:'Inter';font-weight:600;font-size:13px;
-    background:var(--accent);color:#04140F;border:none;border-radius:7px;
-    padding:9px 16px;cursor:pointer;transition:opacity .15s;
-  }
-  .btn:hover{opacity:0.85;}
-  .btn:disabled{opacity:0.5;cursor:wait;}
-  .btn.ghost{
-    background:transparent;color:var(--text);border:1px solid var(--line);
-  }
-  .btn.ghost:hover{border-color:var(--accent);}
-  .layout{display:grid;grid-template-columns:300px 1fr;gap:0;min-height:calc(100vh - 78px);}
-  aside{
-    border-right:1px solid var(--line);padding:24px 20px;
-  }
-  .radar-box{
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    padding:16px;margin-bottom:22px;
-  }
-  .radar-box h3{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:12px;font-weight:600;}
-  .sev-row{display:flex;align-items:center;justify-content:space-between;font-size:13px;padding:5px 0;}
-  .sev-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:8px;}
-  .section-label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin:20px 0 10px;font-weight:600;}
-  .filter-grp{display:flex;flex-direction:column;gap:6px;margin-bottom:4px;}
-  .chip{
-    display:flex;align-items:center;justify-content:space-between;
-    font-size:13px;padding:7px 10px;border-radius:7px;cursor:pointer;
-    border:1px solid transparent;color:var(--muted);
-  }
-  .chip:hover{background:var(--panel-2);}
-  .chip.active{background:var(--panel-2);border-color:var(--line);color:var(--text);}
-  .kw-list{display:flex;flex-direction:column;gap:6px;}
-  .kw-item{
-    display:flex;align-items:center;justify-content:space-between;
-    background:var(--panel);border:1px solid var(--line);border-radius:6px;
-    padding:6px 9px;font-size:12.5px;
-  }
-  .kw-item button{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;}
-  .kw-item button:hover{color:var(--alto);}
-  .kw-add{display:flex;gap:6px;margin-top:8px;}
-  .kw-add input{
-    flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;
-    color:var(--text);font-size:12.5px;padding:7px 8px;font-family:'Inter';
-  }
-  .kw-add input:focus{outline:none;border-color:var(--accent);}
-  .kw-add button{
-    background:var(--panel-2);border:1px solid var(--line);border-radius:6px;color:var(--text);
-    padding:0 10px;cursor:pointer;font-size:14px;
-  }
-  main{padding:24px 32px;}
-  .toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-  .toolbar .last{font-size:12px;color:var(--muted);}
-  .toolbar .last span{color:var(--text);}
-  .feed{display:flex;flex-direction:column;gap:10px;}
-  .card{
-    background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--line);
-    border-radius:9px;padding:16px 18px;animation:fadein .4s ease both;
-  }
-  @keyframes fadein{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
-  .card.alta{border-left-color:var(--alto);}
-  .card.media{border-left-color:var(--medio);}
-  .card.baja{border-left-color:var(--bajo);}
-  .card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px;}
-  .card-title{font-size:14.5px;font-weight:600;line-height:1.4;}
-  .badges{display:flex;gap:6px;flex-shrink:0;}
-  .badge{font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:0.3px;white-space:nowrap;}
-  .badge.alta{background:var(--alto-dim);color:var(--alto);}
-  .badge.media{background:var(--medio-dim);color:var(--medio);}
-  .badge.baja{background:var(--bajo-dim);color:var(--bajo);}
-  .badge.cat{background:var(--accent-dim);color:var(--accent);}
-  .card-summary{font-size:13px;color:#C3CCDA;line-height:1.55;margin-bottom:10px;}
-  .card-meta{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;color:var(--muted);}
-  .card-meta a{color:var(--accent);text-decoration:none;}
-  .card-meta a:hover{text-decoration:underline;}
-  .empty{
-    text-align:center;padding:80px 20px;color:var(--muted);
-  }
-  .empty .big{font-family:'Space Grotesk';font-size:16px;color:var(--text);margin-bottom:6px;}
-  .empty p{font-size:13px;max-width:360px;margin:0 auto;}
-  .loading-line{font-size:12px;color:var(--accent);margin-top:14px;}
-  ::-webkit-scrollbar{width:8px;}
-  ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;}
+  #app{max-width:1100px;margin:0 auto;padding:20px 16px 60px;}
+  h1,h2{font-family:'Space Grotesk',sans-serif;margin:0;}
+  .eyebrow{color:var(--accent);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.15em;text-transform:uppercase;}
+  .subtitle{color:var(--faint);font-size:12px;max-width:480px;margin-top:4px;}
+  .header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:20px;}
+  .btn-ghost{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace;background:none;border:none;cursor:pointer;}
+  .btn-ghost svg{width:13px;height:13px;}
+  .banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:20px;font-size:12px;color:var(--muted);}
+  .banner .left{display:flex;align-items:center;gap:8px;}
+  .banner svg{width:14px;height:14px;flex-shrink:0;}
+  .link-danger{background:none;border:none;color:var(--rojo);font-size:12px;cursor:pointer;white-space:nowrap;}
+  .controls{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:20px;}
+  .segmented{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;}
+  .segmented button{border:none;background:transparent;color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:6px;cursor:pointer;}
+  .segmented button.active{background:var(--accent);color:#0E1620;font-weight:700;}
+  select.project-select{background:var(--surface);border:1px solid var(--border);color:var(--text);font-size:12px;border-radius:8px;padding:6px 10px;}
+  .error-text{color:var(--rojo);font-size:11px;}
+  .gauges-row{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:32px;align-items:stretch;}
+  .overall-card{display:flex;flex-direction:column;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;min-width:220px;}
+  .overall-note{color:var(--faint);font-size:11px;text-align:center;margin-top:6px;}
+  .dims-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;flex:1;min-width:260px;}
+  @media(min-width:640px){.dims-grid{grid-template-columns:repeat(3,1fr);}}
+  @media(min-width:900px){.dims-grid{grid-template-columns:repeat(5,1fr);}}
+  .dim-card{display:flex;align-items:center;justify-content:center;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:10px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;margin-bottom:24px;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  .card-head svg{width:14px;height:14px;color:var(--faint);}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 12px;}
+  .chip{font-size:11px;padding:4px 11px;border-radius:20px;border:1px solid var(--border);color:var(--faint);background:transparent;cursor:pointer;}
+  .chip.active{color:var(--chip-color);border-color:var(--chip-color);background:color-mix(in srgb, var(--chip-color) 12%, transparent);}
+  .chart-wrap{height:220px;}
+  .chart-wrap.small{height:180px;}
+  .list-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px;}
+  .btn-accent{display:flex;align-items:center;gap:6px;background:var(--accent);color:#0E1620;font-size:12px;font-weight:600;border:none;border-radius:10px;padding:7px 14px;cursor:pointer;}
+  .btn-accent svg{width:14px;height:14px;}
+  .form-panel{background:var(--surface-alt);border:1px solid var(--border);border-radius:12px;padding:16px;margin:12px 0 16px;}
+  .form-grid{display:grid;grid-template-columns:1fr;gap:12px;margin-bottom:12px;}
+  @media(min-width:640px){.form-grid{grid-template-columns:1fr 1fr;}}
+  .field label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .field input,.field select,.field textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;font-family:inherit;outline:none;}
+  .field textarea{min-height:60px;resize:vertical;}
+  .btn-save{background:var(--accent);color:#0E1620;font-size:13px;font-weight:600;border:none;border-radius:10px;padding:9px 16px;cursor:pointer;}
+  .empty-state{text-align:center;padding:32px 0;color:var(--faint);font-size:13px;}
+  .alert-item{display:flex;gap:12px;background:var(--surface-alt);border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid var(--item-color);}
+  .alert-item .content{flex:1;min-width:0;}
+  .alert-meta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:4px;}
+  .badge-dim{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;color:var(--dim-color);background:color-mix(in srgb, var(--dim-color) 15%, transparent);}
+  .meta-faint{font-size:10px;color:var(--faint);}
+  .meta-mono{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace;}
+  .badge-example{font-size:9px;color:var(--faint);border:1px solid var(--border);padding:1px 6px;border-radius:10px;}
+  .alert-title{font-size:13px;color:var(--text);}
+  .alert-source-row{display:flex;align-items:center;gap:8px;margin-top:4px;}
+  .alert-source-row a{color:var(--accent);display:flex;}
+  .alert-source-row a svg{width:11px;height:11px;}
+  .btn-delete{background:none;border:none;color:var(--faint);cursor:pointer;align-self:flex-start;}
+  .btn-delete svg{width:14px;height:14px;}
+  .loading-box{display:flex;align-items:center;justify-content:center;min-height:280px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;}
+  .spin{animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .gauge-value{font-family:'JetBrains Mono',monospace;font-weight:700;line-height:1;}
+  .gauge-label{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-top:3px;}
+  .gauge-sublabel{font-size:10px;font-weight:600;margin-top:1px;}
 </style>
 </head>
 <body>
-
-<header>
-  <div class="brand">
-    <div class="mark">BID</div>
-    <div>
-      <h1>Torre de Monitoreo · Perú</h1>
-      <div class="sub">Alertas de riesgo técnico, social, reputacional, económico y político</div>
-    </div>
-  </div>
-  <div style="display:flex;align-items:center;gap:16px;">
-    <div class="status"><span class="pulse"></span><span id="statusText">En espera</span></div>
-    <button class="btn ghost" id="autoBtn">Auto-escaneo: OFF</button>
-    <button class="btn" id="scanBtn">Escanear ahora</button>
-  </div>
-</header>
-
-<div class="layout">
-  <aside>
-    <div class="radar-box">
-      <h3>Distribución de severidad</h3>
-      <div class="sev-row"><span><span class="sev-dot" style="background:var(--alto)"></span>Alta</span><span class="mono" id="cntAlta">0</span></div>
-      <div class="sev-row"><span><span class="sev-dot" style="background:var(--medio)"></span>Media</span><span class="mono" id="cntMedia">0</span></div>
-      <div class="sev-row"><span><span class="sev-dot" style="background:var(--bajo)"></span>Baja</span><span class="mono" id="cntBaja">0</span></div>
-    </div>
-
-    <div class="section-label">Categoría</div>
-    <div class="filter-grp" id="catFilters"></div>
-
-    <div class="section-label">Severidad</div>
-    <div class="filter-grp" id="sevFilters"></div>
-
-    <div class="section-label">Proyectos / palabras clave</div>
-    <div class="kw-list" id="kwList"></div>
-    <div class="kw-add">
-      <input type="text" id="kwInput" placeholder="ej. PE-L1310, MVCS...">
-      <button id="kwAddBtn">+</button>
-    </div>
-    <div class="kw-add" style="margin-top:8px;">
-      <textarea id="bulkInput" placeholder="Pegar cartera completa: un proyecto por línea (código y/o nombre)" rows="3" style="flex:1;background:var(--panel);border:1px solid var(--line);border-radius:6px;color:var(--text);font-size:12px;padding:7px 8px;font-family:'Inter';resize:vertical;"></textarea>
-    </div>
-    <button class="btn ghost" id="bulkAddBtn" style="width:100%;margin-top:6px;font-size:12px;padding:7px;">Importar lista completa</button>
-
-    <div class="section-label">Temas ESG vigilados</div>
-    <div class="kw-list" id="esgList"></div>
-    <div class="kw-add">
-      <input type="text" id="esgInput" placeholder="ej. minería informal Perú...">
-      <button id="esgAddBtn">+</button>
-    </div>
-  </aside>
-
-  <main>
-    <div class="toolbar">
-      <div class="last">Último escaneo: <span id="lastScan">nunca</span></div>
-      <div class="last mono" id="countText">0 alertas</div>
-    </div>
-    <div class="feed" id="feed"></div>
-
-    <details style="margin-top:28px;">
-      <summary style="cursor:pointer;font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.6px;">Diagnóstico técnico</summary>
-      <div style="display:flex;align-items:center;gap:10px;margin:12px 0;">
-        <button class="btn ghost" id="testOneBtn" style="font-size:12px;padding:7px 12px;">Probar 1 término (BID Perú)</button>
-        <span style="font-size:11.5px;color:var(--muted);">Muestra el estado HTTP, cuántas búsquedas web hizo el modelo, y una vista previa de su respuesta cruda.</span>
-      </div>
-      <div id="debugBody" style="background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;max-height:340px;overflow-y:auto;"></div>
-    </details>
-  </main>
-</div>
+<div id="app"><div class="loading-box">Cargando monitor…</div></div>
 
 <script>
-const CATEGORIES = ['tecnico','social','ambiental','gobernanza','reputacional','economico','politico'];
-const CAT_LABELS = {tecnico:'Técnico',social:'Social',ambiental:'Ambiental',gobernanza:'Gobernanza',reputacional:'Reputacional',economico:'Económico',politico:'Político'};
-const DEFAULT_KEYWORDS = [
-  'PE-L1286 5965/OC-PE Transformación Digital',
-  'PE-L1284 6028/OC-PE Mejoramiento y Ampliación de los Servicios',
-  'PE-L1302 6040/OC-PE Mejoramiento integral de los servicios',
-  'PE-L1299 6062/OC-PE Creación del servicio de Acceso a Internet',
-  'PE-L1298 6058/OC-PE Programa de Electrificación Rural',
-  'PE-L1297 6102/OC-PE Programa de mejora de la calidad',
-  'PE-L1305 6114/OC-PE Programa de Innovación Modernización',
-  'PE-L1292 6108/OC-PE Proyecto de tratamiento de aguas residuales',
-  'PE-L1304 6128/OC-PE Mejoramiento del Acceso a los Servicios',
-  'PE-L1294 6133/OC-PE Programa de Apoyo a la Sostenibilidad',
-  'PE-L1224 4873/OC-PE Mejoramiento de los Servicios',
-  'PE-L1227 4555/OC-PE Programa para la Mejora de la Calidad',
-  'PE-L1228 4726/OC-PE Programa de Creación de Redes',
-  'PE-L1230 4959/OC-PE Programa de Mejoramiento de los Servicios',
-  'PE-L1231 4428/OC-PE Proyecto para la Mejora de la Eficiencia',
-  'PE-L1232 4604/SX-PE Proyectos de Inversión Forestal Perú',
-  'PE-L1238 4941/OC-PE Programa Integral de Drenaje Pluvial',
-  'PE-L1239 4725/OC-PE Mejoramiento de los Servicios de Recolección',
-  'PE-L1240 4724/OC-PE Proyecto de Mejoramiento de los Servicios',
-  'PE-L1252 5247/OC-PE Programa de Infraestructura Vial',
-  'PE-L1263 5287/OC-PE Programa de Innovación Modernización',
-  'PE-L1266 5301/OC-PE Proyecto de Mejoramiento de la Administración',
-  'PE-L1010 1717/OC-PE Programa de Garantías Ramal Norte',
-  'PE-L1258 5356/OC-PE Programa para Impulsar el Financiamiento',
-  'PE-L1259 5468/OC-PE Proyecto de Mejoramiento y Ampliación',
-  'PE-L1272 5596/OC-PE Programa de Financiamiento de Mujeres',
-  'PE-L1269 5628/OC-PE Programa Integral de Agua y Saneamiento',
-  'PE-L1250 5696/OC-PE Mejoramiento del Servicio de Abastecimiento',
-  'PE-L1268 5729/OC-PE Programa de Inversión Mejora',
-  'PE-L1256 5737/OC-PE Proyecto de Inversión Mejoramiento',
-  'PE-L1279 5813/OC-PE Programa de Infraestructura Vial',
-  'PE-L1281 5834/OC-PE Proyecto de Transformación Digital',
-  'PE-L1285 5840/OC-PE Proyecto para la Ampliación y Mejora',
-  'PE-L1278 5869/OC-PE Mejoramiento de la Gestión de las Finanzas',
-  'PE-L1288 5893/OC-PE Programa de Apoyo a la Recuperación',
-  'PE-J0001 5935/GR-PE Mejoramiento de los Servicios',
-  'PE-L1290 5936/OC-PE Mejoramiento de los Servicios',
-  'PE-L1280 5941/OC-PE Mejoramiento del Servicio de Inocuidad',
-  'PE-L1293 5961/OC-PE Programa de Impulso a la Vivienda',
-  'PE-L1270 5916/OC-PE Proyecto de Mejoramiento de la Red',
-  'BID Perú',
-  'Banco Interamericano de Desarrollo Perú',
-  'MVCS saneamiento',
-  'SUNASS'
-];
-const DEFAULT_ESG_TOPICS = [
-  'consulta previa comunidades indígenas Perú',
-  'conflicto socioambiental Perú',
-  'licencia ambiental Perú obra pública',
-  'derrame o pasivo ambiental Perú',
-  'corrupción obra pública Perú',
-  'derechos laborales contratista Perú',
-  'cambio climático infraestructura Perú',
-  'transparencia y gobierno corporativo Perú'
-];
+(function(){
+  const DIMENSIONS = [
+    { key:'tecnico', label:'Técnico', color:'#4FA6B0' },
+    { key:'social', label:'Social', color:'#9B87C4' },
+    { key:'reputacional', label:'Reputacional', color:'#D97AA0' },
+    { key:'economico', label:'Económico', color:'#D4A54A' },
+    { key:'politico', label:'Político', color:'#5B8FBF' },
+  ];
+  const SEVERITIES = [ {value:1,label:'Bajo'}, {value:2,label:'Medio'}, {value:3,label:'Alto'} ];
+  const DEFAULT_PROJECTS = ['General BID Perú', 'PE-L1310'];
+  const STORAGE_KEY = 'alerts';
+  const DAY = 86400000;
+  const COLORS = { verde:'#3FAE6B', ambar:'#E0A83E', rojo:'#E2543F', neutral:'#46596A', text:'#E7EDF2', muted:'#8CA0AF', faint:'#5C7080', border:'#25333F', surfaceAlt:'#1C2A37' };
 
-let state = {
-  keywords: [...DEFAULT_KEYWORDS],
-  esgTopics: [...DEFAULT_ESG_TOPICS],
-  alerts: [],
-  activeCat: 'todas',
-  activeSev: 'todas',
-  autoScan: false,
-  debugLog: []
-};
-let autoTimer = null;
+  const ICONS = {
+    plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+    x: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    refresh: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><polyline points="21 3 21 9 15 9"/></svg>',
+    external: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+  };
 
-async function loadState(){
-  try{
-    const kw = await window.storage.get('keywords', true);
-    if(kw) state.keywords = JSON.parse(kw.value);
-  }catch(e){}
-  try{
-    const esg = await window.storage.get('esgTopics', true);
-    if(esg) state.esgTopics = JSON.parse(esg.value);
-  }catch(e){}
-  try{
-    const al = await window.storage.get('alerts', true);
-    if(al) state.alerts = JSON.parse(al.value);
-  }catch(e){}
-  try{
-    const ls = await window.storage.get('lastScan', true);
-    if(ls) document.getElementById('lastScan').textContent = ls.value;
-  }catch(e){}
-  renderKeywords();
-  renderFilters();
-  renderFeed();
-  renderDebug();
-}
+  function dimColor(key){ const d = DIMENSIONS.find(d=>d.key===key); return d ? d.color : COLORS.muted; }
+  function dimLabel(key){ const d = DIMENSIONS.find(d=>d.key===key); return d ? d.label : key; }
 
-async function saveKeywords(){
-  await window.storage.set('keywords', JSON.stringify(state.keywords), true);
-}
-async function saveEsgTopics(){
-  await window.storage.set('esgTopics', JSON.stringify(state.esgTopics), true);
-}
-async function saveAlerts(){
-  await window.storage.set('alerts', JSON.stringify(state.alerts), true);
-}
-
-function renderList(containerId, items, onRemove){
-  const list = document.getElementById(containerId);
-  list.innerHTML = '';
-  items.forEach((kw,i)=>{
-    const el = document.createElement('div');
-    el.className = 'kw-item';
-    el.innerHTML = `<span>${kw}</span><button data-i="${i}">×</button>`;
-    list.appendChild(el);
-  });
-  list.querySelectorAll('button').forEach(b=>{
-    b.onclick = async ()=>{ await onRemove(parseInt(b.dataset.i)); };
-  });
-}
-
-function renderKeywords(){
-  renderList('kwList', state.keywords, async (i)=>{
-    state.keywords.splice(i,1);
-    await saveKeywords();
-    renderKeywords();
-  });
-  renderList('esgList', state.esgTopics, async (i)=>{
-    state.esgTopics.splice(i,1);
-    await saveEsgTopics();
-    renderKeywords();
-  });
-}
-
-function renderFilters(){
-  const catBox = document.getElementById('catFilters');
-  catBox.innerHTML = `<div class="chip ${state.activeCat==='todas'?'active':''}" data-cat="todas">Todas</div>` +
-    CATEGORIES.map(c=>`<div class="chip ${state.activeCat===c?'active':''}" data-cat="${c}">${CAT_LABELS[c]}</div>`).join('');
-  catBox.querySelectorAll('.chip').forEach(c=>{
-    c.onclick = ()=>{ state.activeCat = c.dataset.cat; renderFilters(); renderFeed(); };
-  });
-
-  const sevBox = document.getElementById('sevFilters');
-  const sevs = [['todas','Todas'],['alta','Alta'],['media','Media'],['baja','Baja']];
-  sevBox.innerHTML = sevs.map(([v,l])=>`<div class="chip ${state.activeSev===v?'active':''}" data-sev="${v}">${l}</div>`).join('');
-  sevBox.querySelectorAll('.chip').forEach(c=>{
-    c.onclick = ()=>{ state.activeSev = c.dataset.sev; renderFilters(); renderFeed(); };
-  });
-}
-
-function renderFeed(){
-  const feed = document.getElementById('feed');
-  let items = [...state.alerts].sort((a,b)=> new Date(b.fecha||0) - new Date(a.fecha||0));
-  if(state.activeCat !== 'todas') items = items.filter(a=>a.categoria===state.activeCat);
-  if(state.activeSev !== 'todas') items = items.filter(a=>a.severidad===state.activeSev);
-
-  document.getElementById('cntAlta').textContent = state.alerts.filter(a=>a.severidad==='alta').length;
-  document.getElementById('cntMedia').textContent = state.alerts.filter(a=>a.severidad==='media').length;
-  document.getElementById('cntBaja').textContent = state.alerts.filter(a=>a.severidad==='baja').length;
-  document.getElementById('countText').textContent = `${state.alerts.length} alertas`;
-
-  if(items.length === 0){
-    feed.innerHTML = `<div class="empty"><div class="big">Sin alertas todavía</div><p>Añade palabras clave en el panel izquierdo y presiona "Escanear ahora" para buscar noticias recientes relacionadas a los proyectos del BID en Perú.</p></div>`;
-    return;
+  function buildSeedAlerts(){
+    const now = Date.now();
+    return [
+      { id:'seed-1', ts: now-2*DAY, project:'General BID Perú', dimension:'economico', severity:1, source:'iadb.org (ejemplo)', title:'Ejemplo: comunicado oficial sobre un nuevo financiamiento aprobado para Perú', url:'', isExample:true },
+      { id:'seed-2', ts: now-6*DAY, project:'PE-L1310', dimension:'social', severity:2, source:'Redes sociales (ejemplo)', title:'Ejemplo: comentarios de vecinos sobre el avance de obras en un proyecto en ejecución', url:'', isExample:true },
+      { id:'seed-3', ts: now-11*DAY, project:'PE-L1310', dimension:'tecnico', severity:2, source:'Medio local (ejemplo)', title:'Ejemplo: nota de prensa sobre retrasos menores en el cronograma de una obra', url:'', isExample:true },
+      { id:'seed-4', ts: now-18*DAY, project:'General BID Perú', dimension:'politico', severity:3, source:'Cobertura de medios (ejemplo)', title:'Ejemplo: tensión política nacional que genera incertidumbre para la agenda de reformas', url:'', isExample:true },
+    ];
   }
-  feed.innerHTML = items.map(a=>`
-    <div class="card ${a.severidad}">
-      <div class="card-top">
-        <div class="card-title">${a.titulo}</div>
-        <div class="badges">
-          <span class="badge cat">${CAT_LABELS[a.categoria]||a.categoria}</span>
-          <span class="badge ${a.severidad}">${a.severidad}</span>
+
+  function computeScore(subset){
+    if(!subset || subset.length===0) return null;
+    const avgSeverity = subset.reduce((s,a)=>s+a.severity,0)/subset.length;
+    const volumeFactor = Math.min(1, subset.length/6);
+    const score = ((avgSeverity-1)/2)*70 + volumeFactor*30;
+    return Math.max(0, Math.min(100, Math.round(score)));
+  }
+  function zoneColor(score){ if(score===null||score===undefined) return COLORS.neutral; if(score<34) return COLORS.verde; if(score<67) return COLORS.ambar; return COLORS.rojo; }
+  function zoneLabel(score){ if(score===null||score===undefined) return 'Sin datos'; if(score<34) return 'Verde'; if(score<67) return 'Amarillo'; return 'Rojo'; }
+  function formatShort(d){ return d.toLocaleDateString('es-PE',{day:'2-digit',month:'short'}); }
+  function formatRelative(ts){
+    const diffDays = Math.floor((Date.now()-ts)/DAY);
+    if(diffDays<=0) return 'hoy';
+    if(diffDays===1) return 'ayer';
+    if(diffDays<30) return `hace ${diffDays} días`;
+    return new Date(ts).toLocaleDateString('es-PE',{day:'2-digit',month:'short',year:'numeric'});
+  }
+  function polar(cx,cy,r,angleDeg){ const rad = angleDeg*Math.PI/180; return { x: cx + r*Math.cos(rad), y: cy - r*Math.sin(rad) }; }
+  function arcPath(cx,cy,r,scoreStart,scoreEnd,steps){
+    steps = steps || 24;
+    const aStart = 180 - scoreStart*1.8, aEnd = 180 - scoreEnd*1.8;
+    let d = '';
+    for(let i=0;i<=steps;i++){
+      const a = aStart + (aEnd-aStart)*(i/steps);
+      const p = polar(cx,cy,r,a);
+      d += (i===0?'M ':'L ') + p.x.toFixed(2) + ' ' + p.y.toFixed(2) + ' ';
+    }
+    return d.trim();
+  }
+
+  function gaugeSVG(score, size, label, sublabel){
+    const cx = size/2, cy = size/2 + size*0.06, r = size*0.38, sw = size*0.11;
+    const color = zoneColor(score);
+    const hasScore = score!==null && score!==undefined;
+    const needleAngle = hasScore ? 180 - score*1.8 : 90;
+    const needleR = r - sw*0.9;
+    const tip = polar(cx,cy,needleR,needleAngle);
+    const needle = hasScore ? `<line x1="${cx}" y1="${cy}" x2="${tip.x}" y2="${tip.y}" stroke="${COLORS.text}" stroke-width="${Math.max(2,size*0.014)}" stroke-linecap="round"/><circle cx="${cx}" cy="${cy}" r="${size*0.035}" fill="${COLORS.text}"/>` : '';
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;">
+        <svg width="${size}" height="${size*0.72}" viewBox="0 0 ${size} ${size*0.72}">
+          <path d="${arcPath(cx,cy,r,0,33)}" stroke="${COLORS.verde}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="0.85"/>
+          <path d="${arcPath(cx,cy,r,34,66)}" stroke="${COLORS.ambar}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="0.85"/>
+          <path d="${arcPath(cx,cy,r,67,100)}" stroke="${COLORS.rojo}" stroke-width="${sw}" fill="none" stroke-linecap="round" opacity="0.85"/>
+          ${needle}
+        </svg>
+        <div style="text-align:center;margin-top:-4px;">
+          <div class="gauge-value" style="color:${color};font-size:${size*0.19}px;">${hasScore?score:'—'}</div>
+          <div class="gauge-label">${label}</div>
+          ${sublabel? `<div class="gauge-sublabel" style="color:${color};">${sublabel}</div>` : ''}
         </div>
-      </div>
-      <div class="card-summary">${a.resumen}</div>
-      <div class="card-meta">
-        <span>${a.proyecto ? a.proyecto+' · ' : ''}${a.fuente||'Fuente no especificada'} ${a.fecha?('· '+a.fecha):''}</span>
-        ${a.url ? `<a href="${a.url}" target="_blank" rel="noopener">Ver fuente ↗</a>` : ''}
-      </div>
-    </div>
-  `).join('');
-}
-
-function extractJson(text){
-  let t = text.trim().replace(/^```json/i,'').replace(/^```/,'').replace(/```$/,'').trim();
-  const start = t.indexOf('[');
-  const end = t.lastIndexOf(']');
-  if(start !== -1 && end !== -1) t = t.slice(start, end+1);
-  return JSON.parse(t);
-}
-
-function logDebug(entry){
-  state.debugLog.unshift(entry);
-  if(state.debugLog.length > 60) state.debugLog.pop();
-  renderDebug();
-}
-
-function renderDebug(){
-  const box = document.getElementById('debugBody');
-  if(!box) return;
-  box.innerHTML = state.debugLog.map(e=>`
-    <div style="padding:8px 0;border-bottom:1px solid var(--line);font-size:11.5px;">
-      <div class="mono" style="color:var(--muted);">${e.ts} · <span style="color:${e.status===200?'var(--bajo)':'var(--alto)'}">status:${e.status}</span> · búsquedas:${e.searchCalls ?? '-'} · hallazgos:${e.parsed ?? '-'}</div>
-      <div style="color:var(--text);margin:2px 0;">${e.term}</div>
-      ${e.detail ? `<div style="color:var(--alto);">${e.detail}</div>` : ''}
-      ${e.rawPreview ? `<div class="mono" style="color:var(--muted);white-space:pre-wrap;">${e.rawPreview}${e.rawPreview.length>=220?'…':''}</div>` : ''}
-    </div>
-  `).join('') || '<div style="color:var(--muted);font-size:12px;">Sin actividad todavía. Ejecuta un escaneo.</div>';
-}
-
-async function scanKeyword(kw){
-  const prompt = `Eres un analista de riesgo del BID. Te doy un término de vigilancia (puede incluir un código de proyecto tipo PE-Lxxxx, un código de préstamo tipo xxxx/OC-PE, y/o un nombre de programa): "${kw}".
-
-IMPORTANTE — sé ágil y NO busques solo la frase exacta completa, porque casi nunca aparece así en prensa. En vez de eso:
-- Extrae 2-3 palabras sueltas clave del nombre del programa (ej. de "Programa de Electrificación Rural" usa "electrificación rural") y búscalas junto con "Perú" y, si ayuda, una región o sector.
-- Busca también el código de préstamo solo (ej. "6058/OC-PE") y el código de proyecto solo (ej. "PE-L1298"), por si aparecen en portales del Estado peruano (MEF, SUNASS, Contraloría, OSCE) o prensa especializada.
-- Haz 2-4 búsquedas variadas y rápidas, no exhaustivas. Incluye si es posible una búsqueda tipo site:x.com o site:twitter.com y otra en medios peruanos (El Comercio, La República, Gestión, Perú21, RPP, Infobae Perú, Andina, El Peruano).
-- Acepta como relevante cualquier mención real del programa, la obra, la zona de intervención o el sector afectado — no exijas que mencionen al BID explícitamente, la relación con el proyecto puede inferirse del tema y ubicación.
-
-Responde ÚNICAMENTE con un array JSON (sin texto adicional, sin markdown, sin backticks), cada elemento con EXACTAMENTE estos campos:
-[{"proyecto":"código si aplica, o vacío","titulo":"titular breve en español, en tus propias palabras, máx 12 palabras","categoria":"uno de: tecnico, social, ambiental, gobernanza, reputacional, economico, politico","severidad":"uno de: alta, media, baja","resumen":"2 frases en español, en tus propias palabras, nunca cites texto literal","fuente":"nombre del medio o red social","fecha":"YYYY-MM-DD si se conoce","url":"URL de la fuente"}]
-
-Si tras las búsquedas no hay nada real y específico, responde exactamente: []`;
-
-  const debugEntry = { term: kw, ts: new Date().toLocaleTimeString('es-PE') };
-  let response;
-  try{
-    response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "claude-sonnet-4-6",
-        max_tokens: 2000,
-        messages: [{ role: "user", content: prompt }],
-        tools: [{ type: "web_search_20250305", name: "web_search" }]
-      })
-    });
-  }catch(networkErr){
-    debugEntry.status = 'network_error';
-    debugEntry.detail = String(networkErr);
-    logDebug(debugEntry);
-    return [];
+      </div>`;
   }
 
-  debugEntry.status = response.status;
-  let data;
-  try{
-    data = await response.json();
-  }catch(parseErr){
-    debugEntry.detail = 'Respuesta no es JSON válido';
-    logDebug(debugEntry);
-    return [];
+  // ---------- state ----------
+  let state = {
+    alerts: [],
+    loading: true,
+    refreshing: false,
+    saveError: false,
+    windowDays: 30,
+    projectFilter: 'all',
+    listDimFilter: [],
+    chartDims: ['overall'],
+    showForm: false,
+    form: emptyForm(),
+  };
+  let lineChart = null, barChart = null;
+
+  function emptyForm(){
+    return { date: new Date().toISOString().slice(0,10), project: DEFAULT_PROJECTS[0], dimension:'tecnico', severity:2, source:'', title:'', url:'' };
   }
 
-  if(!response.ok){
-    debugEntry.detail = (data && (data.error?.message || JSON.stringify(data))) || 'Error desconocido';
-    logDebug(debugEntry);
-    return [];
-  }
-
-  const searchCalls = (data.content||[]).filter(b=>b.type==='server_tool_use' && b.name==='web_search').length;
-  const textBlocks = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n');
-  debugEntry.searchCalls = searchCalls;
-  debugEntry.rawPreview = textBlocks.slice(0,220);
-
-  try{
-    const parsed = extractJson(textBlocks);
-    debugEntry.parsed = parsed.length;
-    logDebug(debugEntry);
-    return parsed;
-  }catch(e){
-    debugEntry.detail = 'JSON no parseable: ' + String(e.message||e);
-    logDebug(debugEntry);
-    return [];
-  }
-}
-
-async function runScan(){
-  const scanBtn = document.getElementById('scanBtn');
-  const statusText = document.getElementById('statusText');
-  scanBtn.disabled = true;
-  scanBtn.textContent = 'Escaneando...';
-  let newCount = 0;
-  const allTerms = [...state.keywords, ...state.esgTopics];
-  let idx = 0;
-
-  for(const kw of allTerms){
-    idx++;
-    statusText.textContent = `(${idx}/${allTerms.length}) ${kw}`;
+  async function loadAlerts(){
     try{
-      const results = await scanKeyword(kw);
-      let addedThisTerm = false;
-      for(const r of results){
-        if(!r.titulo) continue;
-        const exists = state.alerts.some(a => (a.url && a.url===r.url) || a.titulo===r.titulo);
-        if(!exists){
-          state.alerts.unshift({
-            proyecto: r.proyecto||'', titulo: r.titulo, categoria: CATEGORIES.includes(r.categoria)?r.categoria:'tecnico',
-            severidad: ['alta','media','baja'].includes(r.severidad)?r.severidad:'baja',
-            resumen: r.resumen||'', fuente: r.fuente||'', fecha: r.fecha||'', url: r.url||''
-          });
-          newCount++;
-          addedThisTerm = true;
-        }
-      }
-      if(addedThisTerm){ await saveAlerts(); renderFeed(); }
-    }catch(e){ /* continue with next keyword */ }
-  }
-
-  if(state.alerts.length > 300) state.alerts = state.alerts.slice(0,300);
-  await saveAlerts();
-  const now = new Date().toLocaleString('es-PE', {dateStyle:'medium', timeStyle:'short'});
-  await window.storage.set('lastScan', now, true);
-  document.getElementById('lastScan').textContent = now;
-
-  statusText.textContent = 'En espera';
-  scanBtn.disabled = false;
-  scanBtn.textContent = 'Escanear ahora';
-  renderFeed();
-  return newCount;
-}
-
-document.getElementById('scanBtn').onclick = runScan;
-
-document.getElementById('kwAddBtn').onclick = async ()=>{
-  const input = document.getElementById('kwInput');
-  const val = input.value.trim();
-  if(val && !state.keywords.includes(val)){
-    state.keywords.push(val);
-    await saveKeywords();
-    renderKeywords();
-    input.value = '';
-  }
-};
-document.getElementById('kwInput').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('kwAddBtn').click();
-});
-
-document.getElementById('bulkAddBtn').onclick = async ()=>{
-  const box = document.getElementById('bulkInput');
-  const lines = box.value.split('\n').map(l=>l.trim()).filter(Boolean);
-  let added = 0;
-  lines.forEach(l=>{
-    if(!state.keywords.includes(l)){ state.keywords.push(l); added++; }
-  });
-  if(added){
-    await saveKeywords();
-    renderKeywords();
-    box.value = '';
-  }
-};
-
-document.getElementById('esgAddBtn').onclick = async ()=>{
-  const input = document.getElementById('esgInput');
-  const val = input.value.trim();
-  if(val && !state.esgTopics.includes(val)){
-    state.esgTopics.push(val);
-    await saveEsgTopics();
-    renderKeywords();
-    input.value = '';
-  }
-};
-document.getElementById('esgInput').addEventListener('keydown', e=>{
-  if(e.key==='Enter') document.getElementById('esgAddBtn').click();
-});
-
-document.getElementById('testOneBtn').onclick = async ()=>{
-  const btn = document.getElementById('testOneBtn');
-  btn.disabled = true;
-  btn.textContent = 'Probando...';
-  const results = await scanKeyword('BID Perú');
-  let added = 0;
-  for(const r of results){
-    if(!r.titulo) continue;
-    const exists = state.alerts.some(a => (a.url && a.url===r.url) || a.titulo===r.titulo);
-    if(!exists){
-      state.alerts.unshift({
-        proyecto: r.proyecto||'', titulo: r.titulo, categoria: CATEGORIES.includes(r.categoria)?r.categoria:'tecnico',
-        severidad: ['alta','media','baja'].includes(r.severidad)?r.severidad:'baja',
-        resumen: r.resumen||'', fuente: r.fuente||'', fecha: r.fecha||'', url: r.url||''
-      });
-      added++;
+      const res = await window.storage.get(STORAGE_KEY, true);
+      if(res && res.value){ state.alerts = JSON.parse(res.value); }
+      else { throw new Error('empty'); }
+    }catch(e){
+      const seed = buildSeedAlerts();
+      state.alerts = seed;
+      try{ await window.storage.set(STORAGE_KEY, JSON.stringify(seed), true); }catch(e2){}
     }
   }
-  if(added){ await saveAlerts(); renderFeed(); }
-  btn.disabled = false;
-  btn.textContent = 'Probar 1 término (BID Perú)';
-};
 
-document.getElementById('autoBtn').onclick = ()=>{
-  state.autoScan = !state.autoScan;
-  const btn = document.getElementById('autoBtn');
-  if(state.autoScan){
-    btn.textContent = 'Auto-escaneo: ON (4h)';
-    runScan();
-    autoTimer = setInterval(runScan, 4*60*60*1000);
-  }else{
-    btn.textContent = 'Auto-escaneo: OFF';
-    clearInterval(autoTimer);
+  async function persist(next){
+    state.alerts = next;
+    try{
+      await window.storage.set(STORAGE_KEY, JSON.stringify(next), true);
+      state.saveError = false;
+    }catch(e){ state.saveError = true; }
+    render();
   }
-};
 
-loadState();
+  function addAlert(){
+    const f = state.form;
+    if(!f.title.trim()) return;
+    const entry = {
+      id: 'a-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
+      ts: new Date(f.date+'T12:00:00').getTime(),
+      project: f.project.trim() || DEFAULT_PROJECTS[0],
+      dimension: f.dimension,
+      severity: Number(f.severity),
+      source: f.source.trim(),
+      title: f.title.trim(),
+      url: f.url.trim(),
+      isExample: false,
+    };
+    const next = [...state.alerts, entry].sort((a,b)=>b.ts-a.ts);
+    state.form = emptyForm();
+    state.showForm = false;
+    persist(next);
+  }
+  function deleteAlert(id){ persist(state.alerts.filter(a=>a.id!==id)); }
+  function clearExamples(){ persist(state.alerts.filter(a=>!a.isExample)); }
+
+  function getProjects(){
+    const set = new Set(DEFAULT_PROJECTS);
+    state.alerts.forEach(a=>set.add(a.project));
+    return Array.from(set);
+  }
+  function inProject(a){ return state.projectFilter==='all' || a.project===state.projectFilter; }
+  function getWindowStart(){
+    const d = new Date(); d.setHours(0,0,0,0);
+    return d.getTime() - (state.windowDays-1)*DAY;
+  }
+
+  function computeAll(){
+    const windowStart = getWindowStart();
+    const windowAlerts = state.alerts.filter(a=>inProject(a) && a.ts>=windowStart);
+    const overallScore = computeScore(windowAlerts);
+    const dimScores = {};
+    DIMENSIONS.forEach(d=>{ dimScores[d.key] = computeScore(windowAlerts.filter(a=>a.dimension===d.key)); });
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const chartData = [];
+    for(let i=state.windowDays-1;i>=0;i--){
+      const d = new Date(today.getTime()-i*DAY);
+      const dayEnd = d.getTime()+DAY-1;
+      const rollStart = d.getTime()-6*DAY;
+      const subset = state.alerts.filter(a=>inProject(a) && a.ts>=rollStart && a.ts<=dayEnd);
+      const row = { label: formatShort(d), overall: computeScore(subset) };
+      DIMENSIONS.forEach(dim=>{ row[dim.key] = computeScore(subset.filter(a=>a.dimension===dim.key)); });
+      chartData.push(row);
+    }
+
+    const weeks = Math.max(1, Math.ceil(state.windowDays/7));
+    const weeklyVolume = [];
+    for(let w=weeks-1; w>=0; w--){
+      const end = today.getTime()-w*7*DAY+DAY-1;
+      const start = end-7*DAY+1;
+      const subset = state.alerts.filter(a=>inProject(a) && a.ts>=start && a.ts<=end);
+      weeklyVolume.push({
+        label: formatShort(new Date(start)),
+        bajo: subset.filter(a=>a.severity===1).length,
+        medio: subset.filter(a=>a.severity===2).length,
+        alto: subset.filter(a=>a.severity===3).length,
+      });
+    }
+
+    const listAlerts = state.alerts
+      .filter(a=>inProject(a))
+      .filter(a=>a.ts>=windowStart)
+      .filter(a=>state.listDimFilter.length===0 || state.listDimFilter.includes(a.dimension))
+      .sort((a,b)=>b.ts-a.ts);
+
+    return { windowAlerts, overallScore, dimScores, chartData, weeklyVolume, listAlerts };
+  }
+
+  // ---------- render ----------
+  function render(){
+    const app = document.getElementById('app');
+    if(state.loading){ app.innerHTML = '<div class="loading-box">Cargando monitor…</div>'; return; }
+
+    const { windowAlerts, overallScore, dimScores, chartData, weeklyVolume, listAlerts } = computeAll();
+    const projects = getProjects();
+    const hasExamples = state.alerts.some(a=>a.isExample);
+
+    let html = '';
+    html += `<div class="header">
+      <div>
+        <div class="eyebrow">Monitor de riesgo · BID Perú</div>
+        <h1 style="font-size:24px;margin:2px 0 4px;">Menciones, noticias y alertas</h1>
+        <div class="subtitle">Este panel no rastrea internet automáticamente: registra aquí lo que detectes en Google Alerts, prensa o redes, y el semáforo se calcula solo.</div>
+      </div>
+      <button class="btn-ghost" data-action="refresh">${ICONS.refresh}<span class="${state.refreshing?'spin':''}" style="display:contents;"></span> actualizar</button>
+    </div>`;
+
+    if(hasExamples){
+      html += `<div class="banner"><div class="left">${ICONS.info} Viendo datos de ejemplo para mostrar cómo funciona el panel.</div><button class="link-danger" data-action="clear-examples">Eliminar ejemplos</button></div>`;
+    }
+
+    html += `<div class="controls">
+      <div class="segmented">
+        ${[7,30,90].map(d=>`<button class="${state.windowDays===d?'active':''}" data-action="set-window" data-value="${d}">${d}d</button>`).join('')}
+      </div>
+      <select class="project-select" data-action="set-project">
+        <option value="all" ${state.projectFilter==='all'?'selected':''}>Todos los proyectos</option>
+        ${projects.map(p=>`<option value="${escapeHtml(p)}" ${state.projectFilter===p?'selected':''}>${escapeHtml(p)}</option>`).join('')}
+      </select>
+      ${state.saveError? `<span class="error-text">No se pudo guardar el último cambio.</span>` : ''}
+    </div>`;
+
+    html += `<div class="gauges-row">
+      <div class="overall-card">
+        ${gaugeSVG(overallScore, 190, 'Nivel general', zoneLabel(overallScore))}
+        <div class="overall-note">${windowAlerts.length} alerta${windowAlerts.length!==1?'s':''} · últimos ${state.windowDays} días</div>
+      </div>
+      <div class="dims-grid">
+        ${DIMENSIONS.map(dim=>`<div class="dim-card">${gaugeSVG(dimScores[dim.key], 110, dim.label)}</div>`).join('')}
+      </div>
+    </div>`;
+
+    html += `<div class="card">
+      <div class="card-head"><h2 style="font-size:15px;">Evolución del nivel de riesgo</h2><span title="Puntaje = severidad promedio ponderada (70%) + volumen de alertas (30%), en ventanas móviles de 7 días.">${ICONS.info}</span></div>
+      <div class="chips">
+        ${[{key:'overall',label:'General',color:COLORS.text}, ...DIMENSIONS].map(d=>`<button class="chip ${state.chartDims.includes(d.key)?'active':''}" style="--chip-color:${d.color};" data-action="toggle-chart-dim" data-value="${d.key}">${d.label}</button>`).join('')}
+      </div>
+      <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+    </div>`;
+
+    html += `<div class="card">
+      <h2 style="font-size:15px;margin-bottom:12px;">Volumen de alertas por semana</h2>
+      <div class="chart-wrap small"><canvas id="barChart"></canvas></div>
+    </div>`;
+
+    html += `<div class="card">
+      <div class="list-head">
+        <h2 style="font-size:15px;">Alertas recientes</h2>
+        <button class="btn-accent" data-action="toggle-form">${state.showForm?ICONS.x:ICONS.plus} ${state.showForm?'Cancelar':'Registrar alerta'}</button>
+      </div>
+      <div class="chips">
+        ${DIMENSIONS.map(d=>`<button class="chip ${state.listDimFilter.includes(d.key)?'active':''}" style="--chip-color:${d.color};" data-action="toggle-list-dim" data-value="${d.key}">${d.label}</button>`).join('')}
+      </div>
+      ${state.showForm ? renderForm(projects) : ''}
+      ${listAlerts.length===0
+        ? `<div class="empty-state">No hay alertas registradas en este rango. Usa "Registrar alerta" para añadir la primera.</div>`
+        : `<div>${listAlerts.map(renderAlertItem).join('')}</div>`
+      }
+    </div>`;
+
+    app.innerHTML = html;
+    bindFormInputs();
+    drawCharts(chartData, weeklyVolume);
+  }
+
+  function renderForm(projects){
+    const f = state.form;
+    return `<div class="form-panel">
+      <div class="form-grid">
+        <div class="field"><label>Fecha</label><input type="date" id="f-date" value="${f.date}"/></div>
+        <div class="field"><label>Proyecto</label><input list="project-suggestions" id="f-project" value="${escapeHtml(f.project)}" placeholder="General BID Perú"/>
+          <datalist id="project-suggestions">${projects.map(p=>`<option value="${escapeHtml(p)}"></option>`).join('')}</datalist>
+        </div>
+        <div class="field"><label>Dimensión</label><select id="f-dimension">${DIMENSIONS.map(d=>`<option value="${d.key}" ${f.dimension===d.key?'selected':''}>${d.label}</option>`).join('')}</select></div>
+        <div class="field"><label>Severidad</label><select id="f-severity">${SEVERITIES.map(s=>`<option value="${s.value}" ${Number(f.severity)===s.value?'selected':''}>${s.label}</option>`).join('')}</select></div>
+        <div class="field"><label>Fuente</label><input id="f-source" value="${escapeHtml(f.source)}" placeholder="Google Alerts, El Comercio, X…"/></div>
+        <div class="field"><label>Enlace (opcional)</label><input id="f-url" value="${escapeHtml(f.url)}" placeholder="https://…"/></div>
+      </div>
+      <div class="field" style="margin-bottom:12px;"><label>Resumen</label><textarea id="f-title" placeholder="Qué se dijo, dónde y por qué importa…">${escapeHtml(f.title)}</textarea></div>
+      <button class="btn-save" data-action="save-alert">Guardar alerta</button>
+    </div>`;
+  }
+
+  function renderAlertItem(a){
+    const itemColor = zoneColor(a.severity===1?10:a.severity===2?50:90);
+    return `<div class="alert-item" style="--item-color:${itemColor};">
+      <div class="content">
+        <div class="alert-meta">
+          <span class="badge-dim" style="--dim-color:${dimColor(a.dimension)};">${dimLabel(a.dimension)}</span>
+          <span class="meta-faint">${escapeHtml(a.project)}</span>
+          <span class="meta-mono">· ${formatRelative(a.ts)}</span>
+          ${a.isExample? '<span class="badge-example">ejemplo</span>' : ''}
+        </div>
+        <div class="alert-title">${escapeHtml(a.title)}</div>
+        <div class="alert-source-row">
+          ${a.source? `<span class="meta-faint">${escapeHtml(a.source)}</span>` : ''}
+          ${a.url? `<a href="${escapeHtml(a.url)}" target="_blank" rel="noreferrer">${ICONS.external}</a>` : ''}
+        </div>
+      </div>
+      <button class="btn-delete" data-action="delete-alert" data-value="${a.id}">${ICONS.trash}</button>
+    </div>`;
+  }
+
+  function escapeHtml(str){
+    return String(str==null?'':str).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  function bindFormInputs(){
+    if(!state.showForm) return;
+    const map = { 'f-date':'date', 'f-project':'project', 'f-dimension':'dimension', 'f-severity':'severity', 'f-source':'source', 'f-url':'url', 'f-title':'title' };
+    Object.keys(map).forEach(id=>{
+      const el = document.getElementById(id);
+      if(!el) return;
+      el.addEventListener('input', ()=>{ state.form[map[id]] = el.value; });
+      el.addEventListener('change', ()=>{ state.form[map[id]] = el.value; });
+    });
+  }
+
+  function drawCharts(chartData, weeklyVolume){
+    const lineCtx = document.getElementById('lineChart');
+    const barCtx = document.getElementById('barChart');
+    if(lineChart){ lineChart.destroy(); lineChart = null; }
+    if(barChart){ barChart.destroy(); barChart = null; }
+    if(!lineCtx || !barCtx || typeof Chart === 'undefined') return;
+
+    const datasets = [];
+    if(state.chartDims.includes('overall')){
+      datasets.push({ label:'General', data: chartData.map(r=>r.overall), borderColor: COLORS.text, backgroundColor: COLORS.text, spanGaps:true, tension:0.35, pointRadius:0, borderWidth:2 });
+    }
+    DIMENSIONS.filter(d=>state.chartDims.includes(d.key)).forEach(d=>{
+      datasets.push({ label:d.label, data: chartData.map(r=>r[d.key]), borderColor:d.color, backgroundColor:d.color, spanGaps:true, tension:0.35, pointRadius:0, borderWidth:2 });
+    });
+
+    lineChart = new Chart(lineCtx, {
+      type:'line',
+      data:{ labels: chartData.map(r=>r.label), datasets },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        scales:{
+          y:{ min:0, max:100, ticks:{ color: COLORS.faint, font:{size:10} }, grid:{ color: COLORS.border } },
+          x:{ ticks:{ color: COLORS.faint, font:{size:10}, maxRotation:0, autoSkip:true }, grid:{ display:false } },
+        },
+        plugins:{ legend:{ display:false }, tooltip:{ backgroundColor: COLORS.surfaceAlt, titleColor: COLORS.faint, bodyColor: COLORS.text, borderColor: COLORS.border, borderWidth:1, titleFont:{family:"'JetBrains Mono',monospace",size:11}, bodyFont:{family:"'JetBrains Mono',monospace",size:11} } },
+      }
+    });
+
+    barChart = new Chart(barCtx, {
+      type:'bar',
+      data:{
+        labels: weeklyVolume.map(r=>r.label),
+        datasets:[
+          { label:'Bajo', data: weeklyVolume.map(r=>r.bajo), backgroundColor: COLORS.verde, stack:'v' },
+          { label:'Medio', data: weeklyVolume.map(r=>r.medio), backgroundColor: COLORS.ambar, stack:'v' },
+          { label:'Alto', data: weeklyVolume.map(r=>r.alto), backgroundColor: COLORS.rojo, stack:'v' },
+        ]
+      },
+      options:{
+        responsive:true, maintainAspectRatio:false,
+        scales:{
+          y:{ beginAtZero:true, ticks:{ color: COLORS.faint, font:{size:10}, precision:0 }, grid:{ color: COLORS.border }, stacked:true },
+          x:{ ticks:{ color: COLORS.faint, font:{size:10} }, grid:{ display:false }, stacked:true },
+        },
+        plugins:{ legend:{ display:false }, tooltip:{ backgroundColor: COLORS.surfaceAlt, titleColor: COLORS.faint, bodyColor: COLORS.text, borderColor: COLORS.border, borderWidth:1 } },
+      }
+    });
+  }
+
+  // ---------- events ----------
+  document.getElementById('app').addEventListener('click', async (e)=>{
+    const el = e.target.closest('[data-action]');
+    if(!el) return;
+    const action = el.dataset.action;
+    const value = el.dataset.value;
+
+    if(action==='refresh'){
+      state.refreshing = true; render();
+      await loadAlerts();
+      state.refreshing = false; render();
+    } else if(action==='clear-examples'){
+      clearExamples();
+    } else if(action==='set-window'){
+      state.windowDays = Number(value); render();
+    } else if(action==='toggle-chart-dim'){
+      state.chartDims = state.chartDims.includes(value) ? state.chartDims.filter(k=>k!==value) : [...state.chartDims, value];
+      render();
+    } else if(action==='toggle-list-dim'){
+      state.listDimFilter = state.listDimFilter.includes(value) ? state.listDimFilter.filter(k=>k!==value) : [...state.listDimFilter, value];
+      render();
+    } else if(action==='toggle-form'){
+      state.showForm = !state.showForm; render();
+    } else if(action==='save-alert'){
+      addAlert();
+    } else if(action==='delete-alert'){
+      deleteAlert(value);
+    }
+  });
+
+  document.getElementById('app').addEventListener('change', (e)=>{
+    if(e.target.matches('[data-action="set-project"]')){
+      state.projectFilter = e.target.value; render();
+    }
+  });
+
+  // ---------- init ----------
+  (async function init(){
+    state.loading = true; render();
+    await loadAlerts();
+    state.loading = false; render();
+  })();
+})();
 </script>
 </body>
 </html>
