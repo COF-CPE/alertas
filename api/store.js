@@ -15,8 +15,20 @@
 
 const ALLOWED_KEYS = ['alerts', 'scan-keywords'];
 
+import { verifyToken } from './auth.js';
+const THIRTY_DAYS = 30 * 24 * 3600 * 1000;
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
+
+  const appPassword = process.env.APP_PASSWORD;
+  if (appPassword) {
+    const token = req.headers['x-cpe-auth'];
+    if (!verifyToken(token, appPassword, THIRTY_DAYS)) {
+      res.status(401).json({ error: 'No autorizado' });
+      return;
+    }
+  }
 
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
