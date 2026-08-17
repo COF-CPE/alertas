@@ -21,9 +21,6 @@
   .eyebrow{color:var(--accent);font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:.15em;text-transform:uppercase;}
   .subtitle{color:var(--faint);font-size:12px;max-width:520px;margin-top:4px;}
   .header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:16px;}
-  .banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--surface-alt);border:1px solid var(--border);border-radius:10px;padding:8px 12px;margin-bottom:16px;font-size:12px;color:var(--muted);}
-  .banner .left{display:flex;align-items:center;gap:8px;}
-  .link-danger{background:none;border:none;color:var(--rojo);font-size:12px;white-space:nowrap;}
   .controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:16px;}
   .segmented{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:4px;}
   .segmented button{border:none;background:transparent;color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace;padding:4px 12px;border-radius:6px;}
@@ -33,15 +30,23 @@
 
   /* búsqueda IA */
   .search-card{background:linear-gradient(135deg,#16212C,#182b33);border:1px solid var(--accent);border-radius:16px;padding:16px 18px;margin-bottom:24px;}
-  .search-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
-  .search-title{font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;}
-  .search-note{color:var(--faint);font-size:11px;flex-basis:100%;}
-  .btn-search{display:flex;align-items:center;gap:8px;background:var(--accent);color:#0E1620;font-size:13px;font-weight:700;border:none;border-radius:10px;padding:9px 18px;}
+  .search-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:10px;}
+  .search-title{font-size:14px;font-weight:600;font-family:'Space Grotesk',sans-serif;display:flex;align-items:center;gap:6px;}
+  .btn-search{display:flex;align-items:center;gap:8px;background:var(--accent);color:#0E1620;font-size:13px;font-weight:700;border:none;border-radius:10px;padding:9px 18px;margin-left:auto;}
   .btn-search:disabled{opacity:.55;cursor:wait;}
   .search-status{font-size:12px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
-  .search-input{flex:1;min-width:180px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:13px;outline:none;}
+  .scope-label{font-size:11px;color:var(--muted);margin-right:2px;}
+  .scope-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px;}
+  .scope-chip{font-size:12px;padding:5px 12px;border-radius:20px;border:1px solid var(--border);color:var(--faint);background:transparent;display:inline-flex;align-items:center;gap:6px;}
+  .scope-chip.active{color:#0E1620;background:var(--accent);border-color:var(--accent);font-weight:700;}
+  .scope-chip .rm{display:inline-flex;opacity:.7;}
+  .scope-chip .rm svg{width:10px;height:10px;}
+  .kw-add{display:inline-flex;align-items:center;gap:4px;}
+  .kw-input{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:5px 12px;color:var(--text);font-size:12px;outline:none;width:180px;}
+  .kw-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:5px 10px;font-size:12px;}
+  .search-note{color:var(--faint);font-size:11px;margin-top:8px;}
 
-  /* resultados de búsqueda */
+  /* resultados */
   .results-panel{margin-top:14px;border-top:1px dashed var(--border);padding-top:12px;}
   .result-item{display:flex;gap:10px;background:var(--surface-alt);border-radius:10px;padding:10px 12px;margin-bottom:8px;align-items:flex-start;}
   .result-item input[type=checkbox]{margin-top:4px;accent-color:var(--accent);}
@@ -88,14 +93,12 @@
   .badge-dim{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;color:var(--dim-color);background:color-mix(in srgb, var(--dim-color) 15%, transparent);}
   .meta-faint{font-size:10px;color:var(--faint);}
   .meta-mono{font-size:10px;color:var(--faint);font-family:'JetBrains Mono',monospace;}
-  .badge-example{font-size:9px;color:var(--faint);border:1px solid var(--border);padding:1px 6px;border-radius:10px;}
+  .badge-dup{font-size:9px;color:var(--faint);border:1px solid var(--border);padding:1px 6px;border-radius:10px;}
   .badge-ia{font-size:9px;color:var(--accent);border:1px solid var(--accent);padding:1px 6px;border-radius:10px;}
   .alert-title{font-size:13px;}
   .alert-source-row{display:flex;align-items:center;gap:8px;margin-top:4px;}
   .alert-source-row a{color:var(--accent);display:flex;}
-  .alert-source-row a svg{width:11px;height:11px;}
   .btn-delete{background:none;border:none;color:var(--faint);align-self:flex-start;}
-  .btn-delete svg{width:14px;height:14px;}
   .loading-box{display:flex;align-items:center;justify-content:center;min-height:280px;color:var(--muted);font-family:'JetBrains Mono',monospace;font-size:13px;}
   .spin{display:inline-block;animation:spin 1s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
@@ -120,12 +123,14 @@
   const SEVERITIES = [ {value:1,label:'Bajo'}, {value:2,label:'Medio'}, {value:3,label:'Alto'} ];
   const DEFAULT_PROJECTS = ['General BID Perú', 'PE-L1310'];
   const STORAGE_KEY = 'alerts';
+  const KEYWORDS_KEY = 'scan-keywords';
   const DAY = 86400000;
   const COLORS = { verde:'#3FAE6B', ambar:'#E0A83E', rojo:'#E2543F', neutral:'#46596A', text:'#E7EDF2', muted:'#8CA0AF', faint:'#5C7080', border:'#25333F', surfaceAlt:'#1C2A37' };
 
   const ICONS = {
     plus:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
     x:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    xsmall:'<svg viewBox="0 0 24 24" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
     trash:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
     external:'<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>',
     info:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
@@ -135,21 +140,11 @@
   const dimColor = k => (DIMENSIONS.find(d=>d.key===k)||{}).color || COLORS.muted;
   const dimLabel = k => (DIMENSIONS.find(d=>d.key===k)||{}).label || k;
 
-  function buildSeedAlerts(){
-    const now = Date.now();
-    return [
-      { id:'seed-1', ts: now-2*DAY, project:'General BID Perú', dimension:'economico', severity:1, source:'iadb.org (ejemplo)', title:'Ejemplo: comunicado oficial sobre un nuevo financiamiento aprobado para Perú', url:'', isExample:true },
-      { id:'seed-2', ts: now-6*DAY, project:'PE-L1310', dimension:'social', severity:2, source:'Redes sociales (ejemplo)', title:'Ejemplo: comentarios de vecinos sobre el avance de obras en un proyecto en ejecución', url:'', isExample:true },
-      { id:'seed-3', ts: now-11*DAY, project:'PE-L1310', dimension:'tecnico', severity:2, source:'Medio local (ejemplo)', title:'Ejemplo: nota de prensa sobre retrasos menores en el cronograma de una obra', url:'', isExample:true },
-      { id:'seed-4', ts: now-18*DAY, project:'General BID Perú', dimension:'politico', severity:3, source:'Cobertura de medios (ejemplo)', title:'Ejemplo: tensión política nacional que genera incertidumbre para la agenda de reformas', url:'', isExample:true },
-    ];
-  }
-
   function computeScore(subset){
     if(!subset || subset.length===0) return null;
-    const avgSeverity = subset.reduce((s,a)=>s+a.severity,0)/subset.length;
-    const volumeFactor = Math.min(1, subset.length/6);
-    return Math.max(0, Math.min(100, Math.round(((avgSeverity-1)/2)*70 + volumeFactor*30)));
+    const avg = subset.reduce((s,a)=>s+a.severity,0)/subset.length;
+    const vol = Math.min(1, subset.length/6);
+    return Math.max(0, Math.min(100, Math.round(((avg-1)/2)*70 + vol*30)));
   }
   const zoneColor = s => (s==null) ? COLORS.neutral : s<34 ? COLORS.verde : s<67 ? COLORS.ambar : COLORS.rojo;
   const zoneLabel = s => (s==null) ? 'Sin datos' : s<34 ? 'Verde' : s<67 ? 'Amarillo' : 'Rojo';
@@ -193,7 +188,8 @@
     windowDays:30, projectFilter:'all',
     listDimFilter:[], chartDims:['overall'],
     showForm:false, form: emptyForm(),
-    searchTopic:'', searching:false, searchStatus:'', searchResults:[], searchError:'',
+    keywords: [], scanSelection: ['__all__'], newKeyword:'',
+    searching:false, searchStatus:'', searchResults:[], searchError:'',
   };
   let lineChart=null, barChart=null;
 
@@ -201,22 +197,33 @@
     return { date:new Date().toISOString().slice(0,10), project:DEFAULT_PROJECTS[0], dimension:'tecnico', severity:2, source:'', title:'', url:'' };
   }
 
-  async function loadAlerts(){
+  async function loadData(){
     try{
       const res = await window.storage.get(STORAGE_KEY, true);
-      if(res && res.value){ state.alerts = JSON.parse(res.value); }
-      else throw new Error('empty');
-    }catch(e){
-      const seed = buildSeedAlerts();
-      state.alerts = seed;
-      try{ await window.storage.set(STORAGE_KEY, JSON.stringify(seed), true); }catch(_){}
-    }
+      if(res && res.value){
+        const parsed = JSON.parse(res.value);
+        // limpiar restos de datos de ejemplo de versiones anteriores
+        state.alerts = parsed.filter(a=>!a.isExample);
+        if(state.alerts.length !== parsed.length){
+          try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state.alerts), true); }catch(_){}
+        }
+      }
+    }catch(e){ state.alerts = []; }
+    try{
+      const kw = await window.storage.get(KEYWORDS_KEY, true);
+      if(kw && kw.value){ state.keywords = JSON.parse(kw.value); }
+    }catch(e){ state.keywords = []; }
   }
-  async function persist(next){
+
+  async function persistAlerts(next){
     state.alerts = next;
     try{ await window.storage.set(STORAGE_KEY, JSON.stringify(next), true); state.saveError=false; }
     catch(e){ state.saveError=true; }
     render();
+  }
+  async function persistKeywords(){
+    try{ await window.storage.set(KEYWORDS_KEY, JSON.stringify(state.keywords), true); }
+    catch(e){ state.saveError=true; }
   }
 
   const normTitle = t => String(t||'').toLowerCase().replace(/\s+/g,' ').trim();
@@ -227,6 +234,35 @@
     );
   }
 
+  // ---------- alcance del escaneo ----------
+  function toggleScanChip(val){
+    if(val==='__all__'){ state.scanSelection = ['__all__']; }
+    else {
+      let sel = state.scanSelection.filter(v=>v!=='__all__');
+      sel = sel.includes(val) ? sel.filter(v=>v!==val) : [...sel, val];
+      state.scanSelection = sel.length ? sel : ['__all__'];
+    }
+    render();
+  }
+  function addKeyword(){
+    const kw = state.newKeyword.trim();
+    if(!kw) return;
+    if(!state.keywords.some(k=>k.toLowerCase()===kw.toLowerCase())){
+      state.keywords.push(kw);
+      persistKeywords();
+    }
+    state.scanSelection = state.scanSelection.filter(v=>v!=='__all__').concat([kw]);
+    state.newKeyword='';
+    render();
+  }
+  function removeKeyword(kw){
+    state.keywords = state.keywords.filter(k=>k!==kw);
+    state.scanSelection = state.scanSelection.filter(v=>v!==kw);
+    if(state.scanSelection.length===0) state.scanSelection=['__all__'];
+    persistKeywords();
+    render();
+  }
+
   // ---------- búsqueda con IA ----------
   async function runSearch(){
     if(state.searching) return;
@@ -234,14 +270,21 @@
     state.searchStatus = 'Buscando en la web…';
     render();
 
-    const topic = state.searchTopic.trim();
-    const proj = state.projectFilter !== 'all' ? state.projectFilter : '';
-    const focus = [proj, topic].filter(Boolean).join(' — ');
+    const scanAll = state.scanSelection.includes('__all__');
+    const focusTerms = scanAll ? [] : state.scanSelection.slice();
     const today = new Date().toISOString().slice(0,10);
 
-    const prompt = `Hoy es ${today}. Usa la búsqueda web para encontrar noticias y menciones RECIENTES (últimos ${state.windowDays} días de preferencia) sobre el Banco Interamericano de Desarrollo (BID) en Perú y sus proyectos u operaciones${focus? `, con foco en: ${focus}` : ''}. Incluye prensa peruana (Gestión, El Comercio, La República, Andina), comunicados oficiales del BID/iadb.org y menciones relevantes.
+    const focusLine = scanAll
+      ? 'Escanea de forma AMPLIA: cualquier noticia o mención relevante sobre el BID en Perú, sus proyectos, operaciones, préstamos, sectores (agua, saneamiento, infraestructura, salud, educación, transporte) y contexto país que pueda afectarlos.'
+      : `Enfoca la búsqueda ESPECÍFICAMENTE en estos términos/proyectos clave (combínalos con "BID" y "Perú"): ${focusTerms.map(t=>'"'+t+'"').join(', ')}. Solo incluye hallazgos relacionados con estos términos.`;
 
-Clasifica cada hallazgo. Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks. Máximo 8 elementos. Cada elemento con este formato exacto:
+    const prompt = `Hoy es ${today}. Usa la búsqueda web para encontrar noticias y menciones RECIENTES (últimos ${state.windowDays} días de preferencia) sobre el Banco Interamericano de Desarrollo (BID) en Perú.
+
+${focusLine}
+
+Revisa prensa peruana (Gestión, El Comercio, La República, Andina), comunicados oficiales del BID/iadb.org y menciones relevantes.
+
+Responde ÚNICAMENTE con un array JSON válido, sin texto adicional, sin markdown, sin backticks. Máximo 8 elementos. Cada elemento con este formato exacto:
 {"date":"YYYY-MM-DD","title":"resumen corto en español (máx 140 caracteres)","source":"nombre del medio","url":"enlace","dimension":"tecnico|social|reputacional|economico|politico","severity":1|2|3,"project":"nombre del proyecto/operación si se identifica, o 'General BID Perú'"}
 
 Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo alto o crisis potencial. Si no encuentras la fecha exacta, estima el mes. Si no encuentras nada relevante, responde [].`;
@@ -260,31 +303,24 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
       if(!response.ok) throw new Error('HTTP '+response.status);
       const data = await response.json();
 
-      const text = (data.content||[])
-        .filter(b=>b.type==='text')
-        .map(b=>b.text||'')
-        .join('\n');
-
+      const text = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text||'').join('\n');
       const clean = text.replace(/```json|```/g,'').trim();
       const start = clean.indexOf('['), end = clean.lastIndexOf(']');
       if(start===-1 || end===-1) throw new Error('Respuesta sin JSON');
       const parsed = JSON.parse(clean.slice(start, end+1));
       if(!Array.isArray(parsed)) throw new Error('Formato inesperado');
 
-      const results = parsed
-        .filter(it=>it && it.title)
-        .map((it,i)=>({
-          rid:'r-'+Date.now()+'-'+i,
-          date: /^\d{4}-\d{2}-\d{2}$/.test(it.date||'') ? it.date : today,
-          title: String(it.title).slice(0,200),
-          source: String(it.source||'Web'),
-          url: String(it.url||''),
-          dimension: DIM_KEYS.includes(it.dimension) ? it.dimension : 'reputacional',
-          severity: [1,2,3].includes(Number(it.severity)) ? Number(it.severity) : 2,
-          project: String(it.project||'General BID Perú'),
-          checked: true,
-          duplicate: false,
-        }));
+      const results = parsed.filter(it=>it && it.title).map((it,i)=>({
+        rid:'r-'+Date.now()+'-'+i,
+        date: /^\d{4}-\d{2}-\d{2}$/.test(it.date||'') ? it.date : today,
+        title: String(it.title).slice(0,200),
+        source: String(it.source||'Web'),
+        url: String(it.url||''),
+        dimension: DIM_KEYS.includes(it.dimension) ? it.dimension : 'reputacional',
+        severity: [1,2,3].includes(Number(it.severity)) ? Number(it.severity) : 2,
+        project: String(it.project||'General BID Perú'),
+        checked: true, duplicate:false,
+      }));
       results.forEach(r=>{ r.duplicate = isDuplicate(r); if(r.duplicate) r.checked=false; });
 
       state.searchResults = results;
@@ -305,13 +341,12 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
     if(toAdd.length===0){ state.searchResults=[]; state.searchStatus='Nada nuevo que agregar.'; render(); return; }
     const entries = toAdd.map(r=>({
       id:'a-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
-      ts: new Date(r.date+'T12:00:00').getTime(),
-      project: r.project, dimension: r.dimension, severity: r.severity,
-      source: r.source, title: r.title, url: r.url,
-      isExample:false, fromAI:true,
+      ts:new Date(r.date+'T12:00:00').getTime(),
+      project:r.project, dimension:r.dimension, severity:r.severity,
+      source:r.source, title:r.title, url:r.url, fromAI:true,
     }));
     state.searchResults=[]; state.searchStatus=`${entries.length} alerta${entries.length!==1?'s':''} agregada${entries.length!==1?'s':''}.`;
-    persist([...state.alerts, ...entries].sort((a,b)=>b.ts-a.ts));
+    persistAlerts([...state.alerts, ...entries].sort((a,b)=>b.ts-a.ts));
   }
 
   // ---------- manual ----------
@@ -321,16 +356,14 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
     const entry = {
       id:'a-'+Date.now()+'-'+Math.random().toString(36).slice(2,7),
       ts:new Date(f.date+'T12:00:00').getTime(),
-      project: f.project.trim()||DEFAULT_PROJECTS[0],
+      project:f.project.trim()||DEFAULT_PROJECTS[0],
       dimension:f.dimension, severity:Number(f.severity),
       source:f.source.trim(), title:f.title.trim(), url:f.url.trim(),
-      isExample:false,
     };
     state.form = emptyForm(); state.showForm=false;
-    persist([...state.alerts, entry].sort((a,b)=>b.ts-a.ts));
+    persistAlerts([...state.alerts, entry].sort((a,b)=>b.ts-a.ts));
   }
-  const deleteAlert = id => persist(state.alerts.filter(a=>a.id!==id));
-  const clearExamples = () => persist(state.alerts.filter(a=>!a.isExample));
+  const deleteAlert = id => persistAlerts(state.alerts.filter(a=>a.id!==id));
 
   function getProjects(){
     const set = new Set(DEFAULT_PROJECTS);
@@ -379,19 +412,15 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
 
     const { windowAlerts, overallScore, dimScores, chartData, weeklyVolume, listAlerts } = computeAll();
     const projects = getProjects();
-    const hasExamples = state.alerts.some(a=>a.isExample);
+    const scanAll = state.scanSelection.includes('__all__');
 
     let html = `<div class="header">
       <div>
         <div class="eyebrow">Monitor de riesgo · BID Perú</div>
         <h1 style="font-size:24px;margin:2px 0 4px;">Menciones, noticias y alertas</h1>
-        <div class="subtitle">Pulsa "Buscar ahora" y la IA rastrea la web por ti; también puedes registrar alertas manualmente. El semáforo se calcula solo.</div>
+        <div class="subtitle">Elige el alcance, pulsa "Buscar ahora" y la IA rastrea la web por ti. El semáforo se calcula solo.</div>
       </div>
     </div>`;
-
-    if(hasExamples){
-      html += `<div class="banner"><div class="left">${ICONS.info} Viendo datos de ejemplo para mostrar cómo funciona el panel.</div><button class="link-danger" data-action="clear-examples">Eliminar ejemplos</button></div>`;
-    }
 
     html += `<div class="controls">
       <div class="segmented">${[7,30,90].map(d=>`<button class="${state.windowDays===d?'active':''}" data-action="set-window" data-value="${d}">${d}d</button>`).join('')}</div>
@@ -402,22 +431,33 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
       ${state.saveError? `<span class="error-text">No se pudo guardar el último cambio.</span>`:''}
     </div>`;
 
-    // búsqueda IA
+    // búsqueda IA con alcance
     html += `<div class="search-card">
-      <div class="search-row">
-        <span class="search-title">${ICONS.radar} Búsqueda automática de noticias</span>
-        <input class="search-input" id="search-topic" placeholder="Tema opcional: saneamiento, obras, préstamo…" value="${escapeHtml(state.searchTopic)}"/>
+      <div class="search-top">
+        <span class="search-title">${ICONS.radar} Escaneo de noticias</span>
+        ${state.searchStatus? `<span class="search-status">${escapeHtml(state.searchStatus)}</span>`:''}
+        ${state.searchError? `<span class="error-text">${escapeHtml(state.searchError)}</span>`:''}
         <button class="btn-search" data-action="run-search" ${state.searching?'disabled':''}>
           ${state.searching? '<span class="spin">◐</span> Buscando…' : 'Buscar ahora'}
         </button>
-        ${state.searchStatus? `<span class="search-status">${escapeHtml(state.searchStatus)}</span>`:''}
-        ${state.searchError? `<span class="error-text">${escapeHtml(state.searchError)}</span>`:''}
-        <span class="search-note">La IA busca en la web (prensa peruana, iadb.org y más) según el proyecto y la ventana de tiempo seleccionados, y clasifica cada hallazgo por dimensión y severidad. Tú revisas antes de agregar.</span>
       </div>
+      <div class="scope-row">
+        <span class="scope-label">Alcance:</span>
+        <button class="scope-chip ${scanAll?'active':''}" data-action="scan-chip" data-value="__all__">Escanear todo</button>
+        ${state.keywords.map(kw=>`
+          <button class="scope-chip ${state.scanSelection.includes(kw)?'active':''}" data-action="scan-chip" data-value="${escapeHtml(kw)}">
+            ${escapeHtml(kw)}
+            <span class="rm" data-action="remove-keyword" data-value="${escapeHtml(kw)}">${ICONS.xsmall}</span>
+          </button>`).join('')}
+        <span class="kw-add">
+          <input class="kw-input" id="kw-input" placeholder="Agregar palabra/proyecto clave…" value="${escapeHtml(state.newKeyword)}"/>
+          <button class="kw-btn" data-action="add-keyword">${ICONS.plus}</button>
+        </span>
+      </div>
+      <div class="search-note">Con "Escanear todo" la IA busca cualquier mención del BID en Perú. Si seleccionas palabras clave (puedes marcar varias), la búsqueda se enfoca solo en ellas. Las palabras quedan guardadas para todo el equipo.</div>
       ${state.searchResults.length? renderResults() : ''}
     </div>`;
 
-    // semáforos
     html += `<div class="gauges-row">
       <div class="overall-card">
         ${gaugeSVG(overallScore,190,'Nivel general',zoneLabel(overallScore))}
@@ -426,20 +466,17 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
       <div class="dims-grid">${DIMENSIONS.map(d=>`<div class="dim-card">${gaugeSVG(dimScores[d.key],110,d.label)}</div>`).join('')}</div>
     </div>`;
 
-    // gráfica evolución
     html += `<div class="card">
       <div class="card-head"><h2 style="font-size:15px;">Evolución del nivel de riesgo</h2><span title="Puntaje = severidad promedio (70%) + volumen de alertas (30%), en ventanas móviles de 7 días.">${ICONS.info}</span></div>
       <div class="chips">${[{key:'overall',label:'General',color:COLORS.text},...DIMENSIONS].map(d=>`<button class="chip ${state.chartDims.includes(d.key)?'active':''}" style="--chip-color:${d.color};" data-action="toggle-chart-dim" data-value="${d.key}">${d.label}</button>`).join('')}</div>
       <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
     </div>`;
 
-    // volumen semanal
     html += `<div class="card">
       <h2 style="font-size:15px;margin-bottom:12px;">Volumen de alertas por semana</h2>
       <div class="chart-wrap small"><canvas id="barChart"></canvas></div>
     </div>`;
 
-    // lista
     html += `<div class="card">
       <div class="list-head">
         <h2 style="font-size:15px;">Alertas recientes</h2>
@@ -463,7 +500,7 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
         <div class="result-item" style="${r.duplicate?'opacity:.5;':''}">
           <input type="checkbox" data-action="toggle-result" data-value="${r.rid}" ${r.checked?'checked':''} ${r.duplicate?'disabled':''}/>
           <div class="result-main">
-            <div class="result-title">${escapeHtml(r.title)} ${r.duplicate?'<span class="badge-example">ya registrada</span>':''}</div>
+            <div class="result-title">${escapeHtml(r.title)} ${r.duplicate?'<span class="badge-dup">ya registrada</span>':''}</div>
             <div class="result-meta">
               <span class="meta-faint">${escapeHtml(r.source)} · ${escapeHtml(r.date)} · ${escapeHtml(r.project)}</span>
               ${r.url? `<a href="${escapeHtml(r.url)}" target="_blank" rel="noreferrer" style="color:var(--accent);display:flex;">${ICONS.external}</a>`:''}
@@ -477,8 +514,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
           </div>
         </div>`).join('')}
       <div class="results-actions">
-        <button class="btn-search" data-action="add-results">Agregar seleccionadas</button>
-        <button class="btn-ghost" data-action="discard-results" style="background:none;border:none;color:var(--faint);font-size:12px;">Descartar</button>
+        <button class="btn-search" style="margin-left:0;" data-action="add-results">Agregar seleccionadas</button>
+        <button style="background:none;border:none;color:var(--faint);font-size:12px;" data-action="discard-results">Descartar</button>
       </div>
     </div>`;
   }
@@ -509,7 +546,6 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
           <span class="meta-faint">${escapeHtml(a.project)}</span>
           <span class="meta-mono">· ${formatRelative(a.ts)}</span>
           ${a.fromAI? '<span class="badge-ia">IA</span>':''}
-          ${a.isExample? '<span class="badge-example">ejemplo</span>':''}
         </div>
         <div class="alert-title">${escapeHtml(a.title)}</div>
         <div class="alert-source-row">
@@ -522,10 +558,10 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
   }
 
   function bindInputs(){
-    const topic = document.getElementById('search-topic');
-    if(topic){
-      topic.addEventListener('input', ()=>{ state.searchTopic = topic.value; });
-      topic.addEventListener('keydown', (e)=>{ if(e.key==='Enter') runSearch(); });
+    const kw = document.getElementById('kw-input');
+    if(kw){
+      kw.addEventListener('input', ()=>{ state.newKeyword = kw.value; });
+      kw.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); addKeyword(); } });
     }
     if(!state.showForm) return;
     const map = { 'f-date':'date','f-project':'project','f-dimension':'dimension','f-severity':'severity','f-source':'source','f-url':'url','f-title':'title' };
@@ -553,15 +589,15 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
       datasets.push({ label:d.label, data:chartData.map(r=>r[d.key]), borderColor:d.color, backgroundColor:d.color, spanGaps:true, tension:0.35, pointRadius:0, borderWidth:2 });
     });
 
-    const tooltipStyle = { backgroundColor:COLORS.surfaceAlt, titleColor:COLORS.faint, bodyColor:COLORS.text, borderColor:COLORS.border, borderWidth:1, titleFont:{family:"'JetBrains Mono',monospace",size:11}, bodyFont:{family:"'JetBrains Mono',monospace",size:11} };
-
     lineChart = new Chart(lineCtx, {
       type:'line',
       data:{ labels:chartData.map(r=>r.label), datasets },
       options:{ responsive:true, maintainAspectRatio:false, animation:{duration:250},
         scales:{ y:{min:0,max:100,ticks:{color:COLORS.faint,font:{size:10}},grid:{color:COLORS.border}},
                  x:{ticks:{color:COLORS.faint,font:{size:10},maxRotation:0,autoSkip:true},grid:{display:false}} },
-        plugins:{ legend:{display:false}, tooltip:tooltipStyle } }
+        plugins:{ legend:{display:false},
+          tooltip:{ backgroundColor:COLORS.surfaceAlt, titleColor:COLORS.faint, bodyColor:COLORS.text, borderColor:COLORS.border, borderWidth:1,
+            titleFont:{family:"'JetBrains Mono',monospace",size:11}, bodyFont:{family:"'JetBrains Mono',monospace",size:11} } } }
     });
     barChart = new Chart(barCtx, {
       type:'bar',
@@ -572,17 +608,19 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
       options:{ responsive:true, maintainAspectRatio:false, animation:{duration:250},
         scales:{ y:{beginAtZero:true,stacked:true,ticks:{color:COLORS.faint,font:{size:10},precision:0},grid:{color:COLORS.border}},
                  x:{stacked:true,ticks:{color:COLORS.faint,font:{size:10}},grid:{display:false}} },
-        plugins:{ legend:{display:false}, tooltip:{backgroundColor:COLORS.surfaceAlt,titleColor:COLORS.faint,bodyColor:COLORS.text,borderColor:COLORS.border,borderWidth:1} } }
+        plugins:{ legend:{display:false},
+          tooltip:{backgroundColor:COLORS.surfaceAlt,titleColor:COLORS.faint,bodyColor:COLORS.text,borderColor:COLORS.border,borderWidth:1} } }
     });
   }
 
   // ---------- events ----------
   document.getElementById('app').addEventListener('click', (e)=>{
+    const rm = e.target.closest('[data-action="remove-keyword"]');
+    if(rm){ e.stopPropagation(); removeKeyword(rm.dataset.value); return; }
     const el = e.target.closest('[data-action]');
     if(!el) return;
     const action = el.dataset.action, value = el.dataset.value;
-    if(action==='clear-examples') clearExamples();
-    else if(action==='set-window'){ state.windowDays=Number(value); render(); }
+    if(action==='set-window'){ state.windowDays=Number(value); render(); }
     else if(action==='toggle-chart-dim'){ state.chartDims = state.chartDims.includes(value)? state.chartDims.filter(k=>k!==value):[...state.chartDims,value]; render(); }
     else if(action==='toggle-list-dim'){ state.listDimFilter = state.listDimFilter.includes(value)? state.listDimFilter.filter(k=>k!==value):[...state.listDimFilter,value]; render(); }
     else if(action==='toggle-form'){ state.showForm=!state.showForm; render(); }
@@ -591,6 +629,8 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
     else if(action==='run-search') runSearch();
     else if(action==='add-results') addSelectedResults();
     else if(action==='discard-results'){ state.searchResults=[]; state.searchStatus=''; render(); }
+    else if(action==='scan-chip') toggleScanChip(value);
+    else if(action==='add-keyword') addKeyword();
     else if(action==='toggle-result'){
       const r = state.searchResults.find(x=>x.rid===value);
       if(r && !r.duplicate){ r.checked = el.checked; }
@@ -611,7 +651,7 @@ Criterio de severity: 1=informativo/positivo, 2=requiere seguimiento, 3=riesgo a
   // ---------- init ----------
   (async function init(){
     state.loading=true; render();
-    await loadAlerts();
+    await loadData();
     state.loading=false; render();
   })();
 })();
